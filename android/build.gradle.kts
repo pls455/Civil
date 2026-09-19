@@ -1,1 +1,1 @@
-allprojects { repositories { google(); mavenCentral() } }
+
