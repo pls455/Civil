@@ -16,4 +16,19 @@ jobs:
       - run: flutter analyze
       - run: flutter test
       - run: chmod +x android/gradlew
-      - run: flutter build apk --debug
+      - name: Build Android APK
+        shell: bash
+        run: |
+          set +e
+          ./android/gradlew :app:assembleDebug --stacktrace --no-daemon 2>&1 | tee /tmp/gradle-build.log
+          status=${PIPESTATUS[0]}
+          echo '--- APK candidates ---'
+          find . -type f -name '*.apk' -print || true
+          echo '--- Gradle failure excerpts ---'
+          grep -E -i 'FAILURE:|What went wrong:|Execution failed|Caused by:|error:' /tmp/gradle-build.log | tail -n 120 || true
+          exit "$status"
+      - name: Verify APK output
+        shell: bash
+        run: |
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
