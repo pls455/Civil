@@ -9,7 +9,7 @@ android {
     ndkVersion = flutter.ndkVersion
     defaultConfig {
         applicationId = "com.civil.citizenregistry"
-        minSdk = 23
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -21,5 +21,5 @@ android {
 }
 flutter { source = "../.." }
 dependencies {
-    implementation("io.github.spannm:jackcess:5.1.7")
+    implementation("io.github.spannm.jackcess:jackcess:5.1.7")
 }
