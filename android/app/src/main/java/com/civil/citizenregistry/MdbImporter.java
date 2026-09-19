@@ -115,12 +115,12 @@ public final class MdbImporter {
       sqlite.setTransactionSuccessful();
       return stats;
     } catch (Exception e) {
-      if (output.exists() && !output.delete()) { }
       throw e;
     } finally {
       if (transactionStarted && sqlite != null && sqlite.inTransaction()) sqlite.endTransaction();
       if (sqlite != null) sqlite.close();
       if (access != null) access.close();
+    }
     }
   }
 
