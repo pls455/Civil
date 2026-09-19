@@ -53,7 +53,7 @@ class HomePage extends StatelessWidget {
               label: const Text('إدارة قواعد البيانات'),
             ),
             const SizedBox(height: 40),
-            Center(
+            const Center(
               child: Text(
                 AppConstants.signature,
                 textAlign: TextAlign.center,
