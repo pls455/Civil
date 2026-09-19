@@ -20,8 +20,10 @@ jobs:
         shell: bash
         run: |
           set +e
-          ./android/gradlew :app:assembleDebug --stacktrace --no-daemon 2>&1 | tee /tmp/gradle-build.log
+          cd android
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon 2>&1 | tee /tmp/gradle-build.log
           status=${PIPESTATUS[0]}
+          cd ..
           echo '--- APK candidates ---'
           find . -type f -name '*.apk' -print || true
           echo '--- Gradle failure excerpts ---'
