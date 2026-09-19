@@ -121,7 +121,6 @@ public final class MdbImporter {
       if (sqlite != null) sqlite.close();
       if (access != null) access.close();
     }
-    }
   }
 
   private static String sqliteType(Column column) {
