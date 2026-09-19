@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'features/home/home_page.dart';
+
+import '../features/home/home_page.dart';
 
 class CitizenRegistryApp extends StatelessWidget {
   const CitizenRegistryApp({super.key});
