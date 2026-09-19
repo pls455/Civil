@@ -21,5 +21,5 @@ android {
 }
 flutter { source = "../.." }
 dependencies {
-    implementation("io.github.spannm.jackcess:jackcess:5.1.7")
+    implementation("io.github.spannm:jackcess:5.1.7")
 }
