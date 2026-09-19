@@ -2,10 +2,10 @@ package com.civil.citizenregistry;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
-import com.healthmarketscience.jackcess.Column;
-import com.healthmarketscience.jackcess.Database;
-import com.healthmarketscience.jackcess.DatabaseBuilder;
-import com.healthmarketscience.jackcess.Table;
+import io.github.spannm.jackcess.Column;
+import io.github.spannm.jackcess.Database;
+import io.github.spannm.jackcess.DatabaseBuilder;
+import io.github.spannm.jackcess.Table;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -33,10 +33,6 @@ public final class MdbImporter {
   }
 
   public static ImportStats importToSqlite(String sourcePath, String outputPath) throws Exception {
-    System.setProperty("com.healthmarketscience.jackcess.brokenNio", "true");
-    System.setProperty("com.healthmarketscience.jackcess.resourcePath", "/res/raw/");
-    Thread.currentThread().setContextClassLoader(Database.class.getClassLoader());
-
     File source = new File(sourcePath);
     if (!source.isFile()) throw new IllegalArgumentException("MDB source does not exist");
 
