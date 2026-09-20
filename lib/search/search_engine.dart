@@ -6,6 +6,8 @@ class SearchQuery {
   final String grandfather;
   final String family;
   final String identity;
+  final String? provinceCode;
+  final String? areaCode;
 
   const SearchQuery({
     this.name = '',
@@ -13,14 +15,18 @@ class SearchQuery {
     this.grandfather = '',
     this.family = '',
     this.identity = '',
+    this.provinceCode,
+    this.areaCode,
   });
 
   bool get isEmpty =>
-      name.isEmpty &&
-      father.isEmpty &&
-      grandfather.isEmpty &&
-      family.isEmpty &&
-      identity.isEmpty;
+      name.trim().isEmpty &&
+      father.trim().isEmpty &&
+      grandfather.trim().isEmpty &&
+      family.trim().isEmpty &&
+      identity.trim().isEmpty &&
+      (provinceCode == null || provinceCode!.trim().isEmpty) &&
+      (areaCode == null || areaCode!.trim().isEmpty);
 }
 
 class SearchEngine {
@@ -54,6 +60,18 @@ class SearchEngine {
     addTextCondition('الاب', query.father);
     addTextCondition('الجد', query.grandfather);
     addTextCondition('العائلة', query.family);
+
+    final provinceCode = query.provinceCode?.trim();
+    if (provinceCode != null && provinceCode.isNotEmpty) {
+      conditions.add('CAST("رمز المحافظة" AS TEXT) = ?');
+      arguments.add(provinceCode);
+    }
+
+    final areaCode = query.areaCode?.trim();
+    if (areaCode != null && areaCode.isNotEmpty) {
+      conditions.add('CAST("رمز المنطقة" AS TEXT) = ?');
+      arguments.add(areaCode);
+    }
 
     arguments.add(limit);
     arguments.add(offset);
