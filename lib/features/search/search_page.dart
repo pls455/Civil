@@ -14,6 +14,12 @@ class _LookupOption {
   });
 }
 
+class _ValueOption {
+  final String value;
+
+  const _ValueOption(this.value);
+}
+
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
   @override State<SearchPage> createState() => _SearchPageState();
@@ -32,9 +38,21 @@ class _SearchPageState extends State<SearchPage> {
   String? filterError;
   String? selectedProvinceCode;
   String? selectedAreaCode;
+  String? selectedGender;
+  String? selectedMaritalStatus;
+  String? selectedDistrict;
+  String? selectedNeighborhood;
+  String? selectedBirthplace;
+  String? selectedWorkplace;
 
   List<_LookupOption> provinces = [];
   List<_LookupOption> areas = [];
+  List<_ValueOption> genders = [];
+  List<_ValueOption> maritalStatuses = [];
+  List<_ValueOption> districts = [];
+  List<_ValueOption> neighborhoods = [];
+  List<_ValueOption> birthplaces = [];
+  List<_ValueOption> workplaces = [];
   List<Map<String, Object?>> rows = [];
 
   @override
@@ -51,6 +69,25 @@ class _SearchPageState extends State<SearchPage> {
     familyController.dispose();
     identityController.dispose();
     super.dispose();
+  }
+
+  Future<List<_ValueOption>> _loadValues(
+    dynamic db,
+    String table,
+    String column,
+  ) async {
+    final result = await db.rawQuery(
+      'SELECT DISTINCT "$column" AS value FROM "$table" '
+      'WHERE "$column" IS NOT NULL AND TRIM(CAST("$column" AS TEXT)) <> "" '
+      'ORDER BY "$column"',
+    );
+
+    return result
+        .map(
+          (row) => _ValueOption(row['value']?.toString().trim() ?? ''),
+        )
+        .where((option) => option.value.isNotEmpty)
+        .toList();
   }
 
   Future<void> _loadFilters() async {
@@ -86,10 +123,25 @@ class _SearchPageState extends State<SearchPage> {
           .where((option) => option.code.isNotEmpty)
           .toList();
 
+      final loadedGenders = await _loadValues(db, 'قائمة_الموظفين', 'الجنس');
+      final loadedMaritalStatuses =
+          await _loadValues(db, 'قائمة_الموظفين', 'الحالة الجتماعية');
+      final loadedDistricts = await _loadValues(db, 'Sgaza', 'الناحية');
+      final loadedNeighborhoods = await _loadValues(db, 'Sgaza', 'الحي');
+      final loadedBirthplaces = await _loadValues(db, 'Sgaza', 'مكان الميلاد');
+      final loadedWorkplaces =
+          await _loadValues(db, 'قائمة_الموظفين', 'مكان العمل');
+
       if (!mounted) return;
       setState(() {
         provinces = loadedProvinces;
         areas = loadedAreas;
+        genders = loadedGenders;
+        maritalStatuses = loadedMaritalStatuses;
+        districts = loadedDistricts;
+        neighborhoods = loadedNeighborhoods;
+        birthplaces = loadedBirthplaces;
+        workplaces = loadedWorkplaces;
         loadingFilters = false;
         filterError = null;
       });
@@ -97,7 +149,7 @@ class _SearchPageState extends State<SearchPage> {
       if (!mounted) return;
       setState(() {
         loadingFilters = false;
-        filterError = 'تعذر تحميل المحافظات والمناطق: $e';
+        filterError = 'تعذر تحميل الفلاتر من قاعدة البيانات: $e';
       });
     }
   }
@@ -111,6 +163,12 @@ class _SearchPageState extends State<SearchPage> {
       identity: identityController.text,
       provinceCode: selectedProvinceCode,
       areaCode: selectedAreaCode,
+      gender: selectedGender,
+      maritalStatus: selectedMaritalStatus,
+      district: selectedDistrict,
+      neighborhood: selectedNeighborhood,
+      birthplace: selectedBirthplace,
+      workplace: selectedWorkplace,
     );
 
     if (query.isEmpty) return;
@@ -181,10 +239,44 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  Widget _valueDropdown(
+    String label,
+    String? value,
+    List<_ValueOption> options,
+    ValueChanged<String?> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DropdownButtonFormField<String>(
+        initialValue: value,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        items: options
+            .map(
+              (option) => DropdownMenuItem<String>(
+                value: option.value,
+                child: Text(option.value),
+              ),
+            )
+            .toList(),
+        onChanged: loadingFilters ? null : onChanged,
+      ),
+    );
+  }
+
   void _clearFilters() {
     setState(() {
       selectedProvinceCode = null;
       selectedAreaCode = null;
+      selectedGender = null;
+      selectedMaritalStatus = null;
+      selectedDistrict = null;
+      selectedNeighborhood = null;
+      selectedBirthplace = null;
+      selectedWorkplace = null;
     });
   }
 
@@ -218,6 +310,42 @@ class _SearchPageState extends State<SearchPage> {
                 selectedAreaCode,
                 areas,
                 (value) => setState(() => selectedAreaCode = value),
+              ),
+              _valueDropdown(
+                'الجنس',
+                selectedGender,
+                genders,
+                (value) => setState(() => selectedGender = value),
+              ),
+              _valueDropdown(
+                'الحالة الاجتماعية',
+                selectedMaritalStatus,
+                maritalStatuses,
+                (value) => setState(() => selectedMaritalStatus = value),
+              ),
+              _valueDropdown(
+                'الناحية',
+                selectedDistrict,
+                districts,
+                (value) => setState(() => selectedDistrict = value),
+              ),
+              _valueDropdown(
+                'الحي',
+                selectedNeighborhood,
+                neighborhoods,
+                (value) => setState(() => selectedNeighborhood = value),
+              ),
+              _valueDropdown(
+                'مكان الميلاد',
+                selectedBirthplace,
+                birthplaces,
+                (value) => setState(() => selectedBirthplace = value),
+              ),
+              _valueDropdown(
+                'مكان العمل',
+                selectedWorkplace,
+                workplaces,
+                (value) => setState(() => selectedWorkplace = value),
               ),
               if (filterError != null)
                 Align(
