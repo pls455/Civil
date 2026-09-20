@@ -20,6 +20,3 @@ android {
     }
 }
 flutter { source = "../.." }
-dependencies {
-    implementation("com.healthmarketscience.jackcess:jackcess:4.0.11")
-}
