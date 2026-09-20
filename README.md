@@ -4,22 +4,22 @@
 
 ## الحالة الحالية
 
-Phase 0 + Phase 1 foundation: تم تثبيت قرار تقني حقيقي لـ MDB/Jet4 وبناء هيكل Flutter/Android قابل للتوسعة. لا توجد بيانات مواطنين حقيقية أو Mock citizen records في المستودع.
+Phase 0 foundation: التطبيق يعتمد على SQLite فقط لاستيراد قاعدة البيانات المحلية وفتحها والبحث داخلها. لا يوجد دعم لملفات MDB/Access، ولا توجد بيانات مواطنين حقيقية أو Mock citizen records في المستودع.
 
-## قرار MDB
+## قرار SQLite
 
-يستخدم التطبيق Jackcess عبر طبقة Android Native Java. Jackcess مكتبة Java خالصة تقرأ ملفات Microsoft Access مباشرة بدون MS Access أو ODBC، وتدعم MDB/ACCDB. توثيق Jackcess يذكر متطلبات Android الخاصة بموارد المكتبة وNIO، لذلك تم عزلها خلف MethodChannel.
+يستورد التطبيق ملفات SQLite المحلية بالامتدادات المدعومة مثل `.sqlite` و`.db` و`.sqlite3`.
 
-- MDB/Jet4: قراءة فعلية من خلال DatabaseBuilder.open(File).
-- الجداول والأعمدة والأنواع تُكتشف أثناء الاستيراد.
-- DATETIME يُحوّل إلى ISO-8601 نصيًا في SQLite التشغيلية.
-- القراءة Read Only من المصدر.
-- العلاقات/المفاتيح تُعامل كبيانات schema metadata، ولا تُفترض إذا لم يكتشفها القارئ.
-- قواعد Access المشفرة تحتاج CodecProvider مناسب، وليست مدعومة افتراضيًا.
+- يتم اختيار ملف SQLite من تخزين الجهاز.
+- يتم فحص سلامة قاعدة البيانات باستخدام SQLite integrity check قبل اعتمادها.
+- تُنسخ القاعدة إلى مساحة التطبيق الخاصة بدل تعديل الملف الأصلي.
+- يتم اعتماد النسخة التشغيلية بعد نجاح الفحص.
+- القراءة داخل التطبيق Read Only من ناحية وظيفة سجل المواطنين.
+- لا يتم افتراض جداول أو أعمدة غير موجودة؛ يجب اكتشاف schema الفعلي من القاعدة.
 
 ## SQLite
 
-SQLite مدمج في Android، والتطبيق يستخدم sqflite مع transactions وbatching وpagination، ولا يحمل كل السجلات إلى RAM.
+SQLite مدمج في Android، والتطبيق يستخدم `sqflite` مع transactions وbatching وpagination عند الحاجة، ولا يفترض تحميل جميع السجلات إلى RAM.
 
 ## الحجم
 
@@ -37,14 +37,14 @@ SQLite مدمج في Android، والتطبيق يستخدم sqflite مع transa
 ## البناء
 
 1. ثبّت Flutter stable وAndroid SDK.
-2. نفّذ flutter pub get.
-3. نفّذ flutter analyze.
-4. نفّذ flutter test.
-5. نفّذ flutter build apk --release.
+2. نفّذ `flutter pub get`.
+3. نفّذ `flutter analyze`.
+4. نفّذ `flutter test`.
+5. نفّذ `flutter build apk --release`.
 
-## اختبار MDB
+## اختبار SQLite
 
-يجب توفير ملف MDB اختباري غير حساس خارج المستودع. من داخل التطبيق اختر استيراد MDB، ثم راقب نتيجة schema وعدد السجلات. لا تضع بيانات مواطنين حقيقية في Git.
+يجب توفير ملف SQLite اختباري غير حساس خارج المستودع. من داخل التطبيق اختر استيراد SQLite، ثم تحقق من نتيجة فحص السلامة، واكتشاف schema، وإمكانية عرض البيانات الفعلية. لا تضع بيانات مواطنين حقيقية في Git.
 
 ## التوقيع
 
