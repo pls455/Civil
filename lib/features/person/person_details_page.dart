@@ -228,7 +228,7 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
               child: ListTile(
                 title: Text(_displayName(relative.person)),
                 subtitle: Text(
-                  'الهوية: ' + _value(relative.person, 'الهوية'),
+                  'الهوية: ${_value(relative.person, 'الهوية')}',
                 ),
                 trailing: const Icon(Icons.chevron_left),
                 onTap: () => Navigator.push(
