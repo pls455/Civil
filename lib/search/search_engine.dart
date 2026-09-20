@@ -116,7 +116,7 @@ class SearchEngine {
 
     return db.rawQuery(
       'SELECT * FROM "Sgaza" '
-      'WHERE ' + conditions.join(' AND ') + ' '
+      'WHERE ${conditions.join(' AND ')} '
       'LIMIT ? OFFSET ?',
       arguments,
     );
