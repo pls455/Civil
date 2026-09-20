@@ -63,7 +63,7 @@ class RelativeFinder {
         'AND "الاسم" = ? '
         'AND "العائلة" = ? '
         'AND "الجد" = ?',
-        [identity, fatherName, family, grandfatherName],
+        [fatherName, family, grandfatherName],
       );
     }
 
@@ -76,7 +76,7 @@ class RelativeFinder {
         'WHERE "الاسم" IS NOT NULL AND "الاسم" != ? '
         'AND "الاسم" = ? '
         'AND "العائلة" = ?',
-        [identity, grandfatherName, family],
+        [grandfatherName, fatherName, family],
       );
     }
 
