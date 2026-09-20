@@ -22,6 +22,8 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
   String? error;
   List<RelativeCandidate> relatives = [];
   Map<String, Object?>? employee;
+  String? provinceName;
+  String? areaName;
 
   static const _personFields = <String, String>{
     'الهوية': 'الهوية',
@@ -34,8 +36,8 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
     'مكان الميلاد': 'مكان الميلاد',
     'الحي': 'الحي',
     'الناحية': 'الناحية',
-    'رمز المحافظة': 'رمز المحافظة',
-    'رمز المنطقة': 'رمز المنطقة',
+    'المحافظة': 'المحافظة',
+    'المنطقة': 'المنطقة',
     'رقم الحي': 'رقم الحي',
     'رقم المنزل': 'رقم المنزل',
   };
@@ -64,6 +66,33 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
           await RelativeFinder(widget.db).findForPerson(widget.person);
 
       Map<String, Object?>? foundEmployee;
+      String? foundProvinceName;
+      String? foundAreaName;
+
+      final provinceCode = _value(widget.person, 'رمز المحافظة');
+      if (provinceCode.isNotEmpty) {
+        final rows = await widget.db.rawQuery(
+          'SELECT "اسم المحافظة" FROM "المحافظات" '
+          'WHERE CAST("رقم المحافظة" AS TEXT) = ? LIMIT 1',
+          [provinceCode],
+        );
+        if (rows.isNotEmpty) {
+          foundProvinceName = rows.first['اسم المحافظة']?.toString().trim();
+        }
+      }
+
+      final areaCode = _value(widget.person, 'رمز المنطقة');
+      if (areaCode.isNotEmpty) {
+        final rows = await widget.db.rawQuery(
+          'SELECT "اسم النطقة" FROM "المناطق" '
+          'WHERE CAST("رمز المنطقة" AS TEXT) = ? LIMIT 1',
+          [areaCode],
+        );
+        if (rows.isNotEmpty) {
+          foundAreaName = rows.first['اسم النطقة']?.toString().trim();
+        }
+      }
+
       final identity = _value(widget.person, 'الهوية');
       if (identity.isNotEmpty) {
         final rows = await widget.db.rawQuery(
@@ -79,6 +108,8 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
       setState(() {
         relatives = foundRelatives;
         employee = foundEmployee;
+        provinceName = foundProvinceName;
+        areaName = foundAreaName;
         busy = false;
       });
     } catch (e) {
@@ -133,7 +164,12 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
     final rows = <Widget>[];
 
     for (final entry in _personFields.entries) {
-      final value = _value(widget.person, entry.key);
+      var value = _value(widget.person, entry.key);
+      if (entry.key == 'المحافظة') {
+        value = provinceName ?? _value(widget.person, 'رمز المحافظة');
+      } else if (entry.key == 'المنطقة') {
+        value = areaName ?? _value(widget.person, 'رمز المنطقة');
+      }
       if (value.isEmpty) continue;
       rows.add(_dataRow(entry.value, value));
     }
