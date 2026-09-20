@@ -34,10 +34,13 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
     'اسم الام': 'اسم الأم',
     'تاريخ الميلاد': 'تاريخ الميلاد',
     'مكان الميلاد': 'مكان الميلاد',
-    'الحي': 'الحي',
-    'الناحية': 'الناحية',
+  };
+
+  static const _locationFields = <String, String>{
     'المحافظة': 'المحافظة',
     'المنطقة': 'المنطقة',
+    'الناحية': 'الناحية',
+    'الحي': 'الحي',
     'رقم الحي': 'رقم الحي',
     'رقم المنزل': 'رقم المنزل',
   };
@@ -148,6 +151,8 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
                     padding: const EdgeInsets.all(16),
                     children: [
                       _buildPersonSection(context),
+                      const SizedBox(height: 12),
+                      _buildLocationSection(context),
                       if (employee != null) ...[
                         const SizedBox(height: 12),
                         _buildEmployeeSection(context),
@@ -189,6 +194,37 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
               const Text('لا توجد بيانات متاحة.')
             else
               ..._withDividers(rows),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationSection(BuildContext context) {
+    final rows = <Widget>[];
+
+    for (final entry in _locationFields.entries) {
+      var value = _value(widget.person, entry.key);
+      if (entry.key == 'المحافظة') {
+        value = provinceName ?? _value(widget.person, 'رمز المحافظة');
+      } else if (entry.key == 'المنطقة') {
+        value = areaName ?? _value(widget.person, 'رمز المنطقة');
+      }
+      if (value.isEmpty) continue;
+      rows.add(_dataRow(entry.value, value));
+    }
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('بيانات السكن والموقع', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
+            ..._withDividers(rows),
           ],
         ),
       ),
