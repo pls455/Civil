@@ -21,5 +21,8 @@ android {
 }
 flutter { source = "../.." }
 dependencies {
-    implementation("io.github.spannm:jackcess:5.1.7")
+    implementation("io.github.spannm:jackcess:5.1.7") {
+        exclude(group = "org.slf4j", module = "slf4j-jdk-platform-logging")
+        exclude(group = "org.slf4j", module = "slf4j-simple")
+    }
 }
