@@ -10,24 +10,42 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final controller = TextEditingController();
+  final nameController = TextEditingController();
+  final fatherController = TextEditingController();
+  final grandfatherController = TextEditingController();
+  final familyController = TextEditingController();
+  final identityController = TextEditingController();
+
   bool busy = false;
   String? error;
   List<Map<String, Object?>> rows = [];
 
   @override
   void dispose() {
-    controller.dispose();
+    nameController.dispose();
+    fatherController.dispose();
+    grandfatherController.dispose();
+    familyController.dispose();
+    identityController.dispose();
     super.dispose();
   }
 
   Future<void> search() async {
-    final query = controller.text.trim();
+    final query = SearchQuery(
+      name: nameController.text,
+      father: fatherController.text,
+      grandfather: grandfatherController.text,
+      family: familyController.text,
+      identity: identityController.text,
+    );
+
     if (query.isEmpty) return;
+
     setState(() {
       busy = true;
       error = null;
     });
+
     try {
       final db = await DatabaseManager().open();
       final result = await SearchEngine(db).search(query);
@@ -40,6 +58,27 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    TextInputAction action = TextInputAction.next,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TextField(
+        controller: controller,
+        textInputAction: action,
+        onSubmitted: (_) {
+          if (action == TextInputAction.search) search();
+        },
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -50,24 +89,33 @@ class _SearchPageState extends State<SearchPage> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              TextField(
-                controller: controller,
-                textInputAction: TextInputAction.search,
-                onSubmitted: (_) => search(),
-                decoration: InputDecoration(
-                  labelText: 'الهوية أو الاسم',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    onPressed: busy ? null : search,
-                    icon: const Icon(Icons.arrow_forward),
-                  ),
-                  border: const OutlineInputBorder(),
+              _field(nameController, 'الاسم'),
+              _field(fatherController, 'اسم الأب'),
+              _field(grandfatherController, 'اسم الجد'),
+              _field(familyController, 'العائلة'),
+              _field(
+                identityController,
+                'الهوية',
+                action: TextInputAction.search,
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: busy ? null : search,
+                  icon: const Icon(Icons.search),
+                  label: const Text('بحث'),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               if (busy) const LinearProgressIndicator(),
               if (error != null)
-                Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                Text(
+                  error!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
               const SizedBox(height: 8),
               Expanded(
                 child: rows.isEmpty
@@ -82,7 +130,8 @@ class _SearchPageState extends State<SearchPage> {
                               '${row['الاسم'] ?? ''} ${row['الاب'] ?? ''} ${row['العائلة'] ?? ''}',
                             ),
                             subtitle: Text(
-                              'الهوية: ${row['الهوية'] ?? ''}\nمكان الميلاد: ${row['مكان الميلاد'] ?? ''}',
+                              'الهوية: ${row['الهوية'] ?? ''}\n'
+                              'مكان الميلاد: ${row['مكان الميلاد'] ?? ''}',
                             ),
                             isThreeLine: true,
                             trailing: const Icon(Icons.chevron_left),
