@@ -73,7 +73,7 @@ class _SearchPageState extends State<SearchPage> {
                     ? const Center(child: Text('لا توجد نتائج.'))
                     : ListView.separated(
                         itemCount: rows.length,
-                        separatorBuilder: (_, __) => const Divider(),
+                        separatorBuilder: (_, _) => const Divider(),
                         itemBuilder: (_, index) {
                           final row = rows[index];
                           return ListTile(
