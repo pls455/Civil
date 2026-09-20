@@ -97,7 +97,9 @@ class RelativeFinder {
 
     // Same father + grandfather + family is the strongest available
     // evidence for people belonging to the same immediate sibling group.
-    if (fatherName.isNotEmpty && grandfatherName.isNotEmpty) {
+    if (fatherName.isNotEmpty &&
+        grandfatherName.isNotEmpty &&
+        family.isNotEmpty) {
       await addMatches(
         RelativeType.siblings,
         'SELECT * FROM "Sgaza" '
