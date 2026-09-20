@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../database/database_manager.dart';
 import '../../search/search_engine.dart';
+import '../person/person_details_page.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -74,12 +75,30 @@ class _SearchPageState extends State<SearchPage> {
                     : ListView.separated(
                         itemCount: rows.length,
                         separatorBuilder: (_, _) => const Divider(),
-                        itemBuilder: (_, index) {
+                        itemBuilder: (context, index) {
                           final row = rows[index];
                           return ListTile(
-                            title: Text('${row['الاسم'] ?? ''} ${row['الاب'] ?? ''} ${row['العائلة'] ?? ''}'),
-                            subtitle: Text('الهوية: ${row['الهوية'] ?? ''}\nمكان الميلاد: ${row['مكان الميلاد'] ?? ''}'),
+                            title: Text(
+                              '${row['الاسم'] ?? ''} ${row['الاب'] ?? ''} ${row['العائلة'] ?? ''}',
+                            ),
+                            subtitle: Text(
+                              'الهوية: ${row['الهوية'] ?? ''}\nمكان الميلاد: ${row['مكان الميلاد'] ?? ''}',
+                            ),
                             isThreeLine: true,
+                            trailing: const Icon(Icons.chevron_left),
+                            onTap: () async {
+                              final db = await DatabaseManager().open();
+                              if (!context.mounted) return;
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PersonDetailsPage(
+                                    db: db,
+                                    person: row,
+                                  ),
+                                ),
+                              );
+                            },
                           );
                         },
                       ),
