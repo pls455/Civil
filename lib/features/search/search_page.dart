@@ -4,6 +4,16 @@ import '../../database/database_manager.dart';
 import '../../search/search_engine.dart';
 import '../person/person_details_page.dart';
 
+class _LookupOption {
+  final String code;
+  final String name;
+
+  const _LookupOption({
+    required this.code,
+    required this.name,
+  });
+}
+
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
   @override State<SearchPage> createState() => _SearchPageState();
@@ -17,8 +27,21 @@ class _SearchPageState extends State<SearchPage> {
   final identityController = TextEditingController();
 
   bool busy = false;
+  bool loadingFilters = true;
   String? error;
+  String? filterError;
+  String? selectedProvinceCode;
+  String? selectedAreaCode;
+
+  List<_LookupOption> provinces = [];
+  List<_LookupOption> areas = [];
   List<Map<String, Object?>> rows = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFilters();
+  }
 
   @override
   void dispose() {
@@ -30,6 +53,55 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
+  Future<void> _loadFilters() async {
+    try {
+      final db = await DatabaseManager().open();
+
+      final provinceRows = await db.rawQuery(
+        'SELECT "رقم المحافظة" AS code, "اسم المحافظة" AS name '
+        'FROM "المحافظات" ORDER BY "اسم المحافظة"',
+      );
+      final areaRows = await db.rawQuery(
+        'SELECT "رمز المنطقة" AS code, "اسم النطقة" AS name '
+        'FROM "المناطق" ORDER BY "اسم النطقة"',
+      );
+
+      final loadedProvinces = provinceRows
+          .map(
+            (row) => _LookupOption(
+              code: row['code']?.toString() ?? '',
+              name: row['name']?.toString() ?? '',
+            ),
+          )
+          .where((option) => option.code.isNotEmpty)
+          .toList();
+
+      final loadedAreas = areaRows
+          .map(
+            (row) => _LookupOption(
+              code: row['code']?.toString() ?? '',
+              name: row['name']?.toString() ?? '',
+            ),
+          )
+          .where((option) => option.code.isNotEmpty)
+          .toList();
+
+      if (!mounted) return;
+      setState(() {
+        provinces = loadedProvinces;
+        areas = loadedAreas;
+        loadingFilters = false;
+        filterError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        loadingFilters = false;
+        filterError = 'تعذر تحميل المحافظات والمناطق: $e';
+      });
+    }
+  }
+
   Future<void> search() async {
     final query = SearchQuery(
       name: nameController.text,
@@ -37,6 +109,8 @@ class _SearchPageState extends State<SearchPage> {
       grandfather: grandfatherController.text,
       family: familyController.text,
       identity: identityController.text,
+      provinceCode: selectedProvinceCode,
+      areaCode: selectedAreaCode,
     );
 
     if (query.isEmpty) return;
@@ -79,6 +153,41 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  Widget _dropdown(
+    String label,
+    String? value,
+    List<_LookupOption> options,
+    ValueChanged<String?> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        items: options
+            .map(
+              (option) => DropdownMenuItem<String>(
+                value: option.code,
+                child: Text(option.name),
+              ),
+            )
+            .toList(),
+        onChanged: loadingFilters ? null : onChanged,
+      ),
+    );
+  }
+
+  void _clearFilters() {
+    setState(() {
+      selectedProvinceCode = null;
+      selectedAreaCode = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -98,17 +207,46 @@ class _SearchPageState extends State<SearchPage> {
                 'الهوية',
                 action: TextInputAction.search,
               ),
-              const SizedBox(height: 4),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: busy ? null : search,
-                  icon: const Icon(Icons.search),
-                  label: const Text('بحث'),
+              _dropdown(
+                'المحافظة',
+                selectedProvinceCode,
+                provinces,
+                (value) => setState(() => selectedProvinceCode = value),
+              ),
+              _dropdown(
+                'المنطقة',
+                selectedAreaCode,
+                areas,
+                (value) => setState(() => selectedAreaCode = value),
+              ),
+              if (filterError != null)
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    filterError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: busy ? null : search,
+                      icon: const Icon(Icons.search),
+                      label: const Text('بحث'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  OutlinedButton(
+                    onPressed: busy ? null : _clearFilters,
+                    child: const Text('مسح الفلاتر'),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
-              if (busy) const LinearProgressIndicator(),
+              if (busy || loadingFilters) const LinearProgressIndicator(),
               if (error != null)
                 Text(
                   error!,
