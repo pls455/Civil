@@ -8,6 +8,12 @@ class SearchQuery {
   final String identity;
   final String? provinceCode;
   final String? areaCode;
+  final String? gender;
+  final String? maritalStatus;
+  final String? district;
+  final String? neighborhood;
+  final String? birthplace;
+  final String? workplace;
 
   const SearchQuery({
     this.name = '',
@@ -17,6 +23,12 @@ class SearchQuery {
     this.identity = '',
     this.provinceCode,
     this.areaCode,
+    this.gender,
+    this.maritalStatus,
+    this.district,
+    this.neighborhood,
+    this.birthplace,
+    this.workplace,
   });
 
   bool get isEmpty =>
@@ -26,7 +38,13 @@ class SearchQuery {
       family.trim().isEmpty &&
       identity.trim().isEmpty &&
       (provinceCode == null || provinceCode!.trim().isEmpty) &&
-      (areaCode == null || areaCode!.trim().isEmpty);
+      (areaCode == null || areaCode!.trim().isEmpty) &&
+      (gender == null || gender!.trim().isEmpty) &&
+      (maritalStatus == null || maritalStatus!.trim().isEmpty) &&
+      (district == null || district!.trim().isEmpty) &&
+      (neighborhood == null || neighborhood!.trim().isEmpty) &&
+      (birthplace == null || birthplace!.trim().isEmpty) &&
+      (workplace == null || workplace!.trim().isEmpty);
 }
 
 class SearchEngine {
@@ -47,6 +65,19 @@ class SearchEngine {
       final trimmed = value.trim();
       if (trimmed.isEmpty) return;
       conditions.add('"$column" LIKE ?');
+      arguments.add('%$trimmed%');
+    }
+
+    void addEmployeeCondition(String column, String? value) {
+      final trimmed = value?.trim() ?? '';
+      if (trimmed.isEmpty) return;
+      conditions.add(
+        'EXISTS ('
+        'SELECT 1 FROM "قائمة_الموظفين" AS e '
+        'WHERE e."الهوية" = "Sgaza"."الهوية" '
+        'AND e."$column" LIKE ?'
+        ')',
+      );
       arguments.add('%$trimmed%');
     }
 
@@ -73,12 +104,19 @@ class SearchEngine {
       arguments.add(areaCode);
     }
 
+    addEmployeeCondition('الجنس', query.gender);
+    addEmployeeCondition('الحالة الجتماعية', query.maritalStatus);
+    addTextCondition('الناحية', query.district ?? '');
+    addTextCondition('الحي', query.neighborhood ?? '');
+    addTextCondition('مكان الميلاد', query.birthplace ?? '');
+    addEmployeeCondition('مكان العمل', query.workplace);
+
     arguments.add(limit);
     arguments.add(offset);
 
     return db.rawQuery(
       'SELECT * FROM "Sgaza" '
-      'WHERE ${conditions.join(' AND ')} '
+      'WHERE ' + conditions.join(' AND ') + ' '
       'LIMIT ? OFFSET ?',
       arguments,
     );
