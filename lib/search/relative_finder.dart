@@ -55,29 +55,44 @@ class RelativeFinder {
     // The strongest available parent relation in this schema:
     // the candidate's name is the current person's recorded father,
     // while the candidate's father/grandfather fields continue the chain.
-    if (fatherName.isNotEmpty) {
-      await addMatches(
-        RelativeType.father,
+    if (fatherName.isNotEmpty &&
+        grandfatherName.isNotEmpty &&
+        family.isNotEmpty) {
+      final rows = await db.rawQuery(
         'SELECT * FROM "Sgaza" '
-        'WHERE "الاسم" IS NOT NULL AND "الاسم" != ? '
-        'AND "الاسم" = ? '
+        'WHERE "الاسم" = ? '
         'AND "العائلة" = ? '
         'AND "الجد" = ?',
         [fatherName, family, grandfatherName],
       );
+      if (rows.length == 1) {
+        await addMatches(
+          RelativeType.father,
+          'SELECT * FROM "Sgaza" WHERE "الهوية" = ?',
+          [_value(rows.first, 'الهوية')],
+        );
+      }
     }
 
     // The same chain lets us resolve the recorded grandfather through
     // the candidate father, when the database contains that person.
-    if (grandfatherName.isNotEmpty) {
-      await addMatches(
-        RelativeType.grandfather,
+    if (grandfatherName.isNotEmpty &&
+        fatherName.isNotEmpty &&
+        family.isNotEmpty) {
+      final rows = await db.rawQuery(
         'SELECT * FROM "Sgaza" '
-        'WHERE "الاسم" IS NOT NULL AND "الاسم" != ? '
-        'AND "الاسم" = ? '
+        'WHERE "الاسم" = ? '
+        'AND "الاب" = ? '
         'AND "العائلة" = ?',
         [grandfatherName, fatherName, family],
       );
+      if (rows.length == 1) {
+        await addMatches(
+          RelativeType.grandfather,
+          'SELECT * FROM "Sgaza" WHERE "الهوية" = ?',
+          [_value(rows.first, 'الهوية')],
+        );
+      }
     }
 
     // Same father + grandfather + family is the strongest available
