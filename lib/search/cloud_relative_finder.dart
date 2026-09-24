@@ -31,7 +31,7 @@ class CloudRelativeFinder {
 
     void add(CloudRelativeType type, CloudPerson relative) {
       if (relative.id.isEmpty || relative.id == person.id) return;
-      candidates['$type:' + relative.id] =
+      candidates['${type}:${relative.id}'] =
           CloudRelativeCandidate(type: type, person: relative);
     }
 
