@@ -175,6 +175,7 @@ class CloudRelativeFinder {
           add(CloudRelativeType.grandparents, maternalGrandmother);
         }
       }
+    }
 
     return candidates.values.toList();
   }
