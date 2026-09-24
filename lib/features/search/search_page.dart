@@ -98,7 +98,11 @@ class _SearchPageState extends State<SearchPage> {
       const SizedBox(height:12),if(busy||loadingFilters)const LinearProgressIndicator(),
       if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),const SizedBox(height:8),
       Expanded(child:source==_SearchSource.local?_buildLocalResults(context):_buildCloudResults(context)),
-    ]),);
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildLocalResults(BuildContext context)=>rows.isEmpty?const Center(child:Text('لا توجد نتائج.')):ListView.separated(itemCount:rows.length,separatorBuilder:(_,_)=>const Divider(),itemBuilder:(context,index){final row=rows[index];return ListTile(title:Text('${row['الاسم']??''} ${row['الاب']??''} ${row['العائلة']??''}'),subtitle:Text('الهوية: ${row['الهوية']??''}\nمكان الميلاد: ${row['مكان الميلاد']??''}'),isThreeLine:true,trailing:const Icon(Icons.chevron_left),onTap:()async{final db=await DatabaseManager().open();if(!context.mounted)return;await Navigator.push(context,MaterialPageRoute(builder:(_)=>PersonDetailsPage(db:db,person:row)));},);});
