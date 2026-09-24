@@ -32,6 +32,7 @@ class RelativeFinder {
     final fatherName = _value(person, 'الاب');
     final grandfatherName = _value(person, 'الجد');
     final family = _value(person, 'العائلة');
+    final motherName = _value(person, 'اسم الام');
 
     if (identity.isEmpty) return const [];
 
@@ -94,13 +95,15 @@ class RelativeFinder {
         'AND "الهوية" != ? '
         'AND "الاب" = ? '
         'AND "الجد" = ? '
-        'AND "العائلة" = ?',
+        'AND "العائلة" = ? '
+        'AND "اسم الام" = ?',
         [
           identity,
           _value(father, 'الهوية'),
           fatherName,
           grandfatherName,
           family,
+          motherName,
         ],
       );
 
@@ -130,8 +133,9 @@ class RelativeFinder {
         'WHERE "الهوية" != ? '
         'AND "الاب" = ? '
         'AND "الجد" = ? '
-        'AND "العائلة" = ?',
-        [identity, name, fatherName, family],
+        'AND "العائلة" = ? '
+        'AND "اسم الام" = ?',
+        [identity, name, fatherName, family, motherName],
       );
 
       for (final row in rows) {
