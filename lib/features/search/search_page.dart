@@ -30,8 +30,8 @@ class _SearchPageState extends State<SearchPage> {
   final cloudEngine=CloudSearchEngine();
   _SearchSource source=_SearchSource.local;
   bool busy=false, loadingFilters=true; String? error, filterError;
-  String? selectedProvinceCode, selectedAreaCode, selectedGender, selectedMaritalStatus, selectedDistrict, selectedNeighborhood, selectedBirthplace, selectedWorkplace;
-  List<_LookupOption> provinces=[], areas=[]; List<_ValueOption> genders=[], maritalStatuses=[], districts=[], neighborhoods=[], birthplaces=[], workplaces=[];
+  String? selectedProvinceCode, selectedAreaCode, selectedGender, selectedMaritalStatus;
+  List<_LookupOption> provinces=[], areas=[]; List<_ValueOption> genders=[], maritalStatuses=[];
   List<Map<String,Object?>> rows=[]; List<CloudPerson> cloudRows=[]; bool cloudHasMore=false; int cloudOffset=0;
 
   @override void initState(){super.initState(); WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _loadFilters(); });}
@@ -68,7 +68,7 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  SearchQuery _query()=>SearchQuery(name:nameController.text,father:fatherController.text,grandfather:grandfatherController.text,family:familyController.text,identity:identityController.text,mother:motherController.text,birthDate:birthDateController.text,provinceCode:selectedProvinceCode,areaCode:selectedAreaCode,gender  SearchQuery _query()=>SearchQuery(name:nameController.text,father:fatherController.text,grandfather:grandfatherController.text,family:familyController.text,identity:identityController.text,mother:motherController.text,birthDate:birthDateController.text,provinceCode:selectedProvinceCode,areaCode:selectedAreaCode,gender:selectedGender,maritalStatus:selectedMaritalStatus,district:districtController.text,neighborhood:neighborhoodController.text,birthplace:birthplaceController.text,workplace:workplaceController.text);
+  SearchQuery _query()=>SearchQuery(name:nameController.text,father:fatherController.text,grandfather:grandfatherController.text,family:familyController.text,identity:identityController.text,mother:motherController.text,birthDate:birthDateController.text,provinceCode:selectedProvinceCode,areaCode:selectedAreaCode,gender:selectedGender,maritalStatus:selectedMaritalStatus,district:districtController.text,neighborhood:neighborhoodController.text,birthplace:birthplaceController.text,workplace:workplaceController.text);
 
   Future<void> search() async {
     final query=_query(); if(query.isEmpty)return;
