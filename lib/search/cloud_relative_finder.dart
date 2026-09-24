@@ -170,6 +170,7 @@ class CloudRelativeFinder {
         father: person.father,
         grandfather: person.grandfather,
         family: person.family,
+        mother: person.mother,
       );
 
       for (final sibling in siblings) {
@@ -198,6 +199,7 @@ class CloudRelativeFinder {
         father: person.name,
         grandfather: person.father,
         family: person.family,
+        mother: person.mother,
       );
 
       for (final child in children) {
