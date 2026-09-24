@@ -9,7 +9,6 @@ enum CloudRelativeType {
   grandparents,
 }
 
-
 class CloudRelativeCandidate {
   final CloudRelativeType type;
   final CloudPerson person;
@@ -32,7 +31,7 @@ class CloudRelativeFinder {
 
     void add(CloudRelativeType type, CloudPerson relative) {
       if (relative.id.isEmpty || relative.id == person.id) return;
-      candidates['$type:${relative.id}'] =
+      candidates['$type:' + relative.id] =
           CloudRelativeCandidate(type: type, person: relative);
     }
 
@@ -43,8 +42,8 @@ class CloudRelativeFinder {
       String family = '',
       String mother = '',
       String birthDate = '',
-      String gender = '',
-      int limit = 50,
+      int limit = 2,
+      int offset = 0,
     }) async {
       final result = await engine.search(
         SearchQuery(
@@ -54,9 +53,9 @@ class CloudRelativeFinder {
           family: family,
           mother: mother,
           birthDate: birthDate,
-          gender: gender.isEmpty ? null : gender,
         ),
         limit: limit,
+        offset: offset,
       );
 
       bool same(String actual, String expected) =>
@@ -71,6 +70,54 @@ class CloudRelativeFinder {
             (mother.isEmpty || same(candidate.mother, mother)) &&
             (birthDate.isEmpty || same(candidate.birth, birthDate));
       }).toList();
+    }
+
+    Future<List<CloudPerson>> searchAllExact({
+      String name = '',
+      String father = '',
+      String grandfather = '',
+      String family = '',
+      String mother = '',
+      String birthDate = '',
+    }) async {
+      const pageSize = 100;
+      final all = <CloudPerson>[];
+      var offset = 0;
+
+      while (true) {
+        final page = await engine.search(
+          SearchQuery(
+            name: name,
+            father: father,
+            grandfather: grandfather,
+            family: family,
+            mother: mother,
+            birthDate: birthDate,
+          ),
+          limit: pageSize,
+          offset: offset,
+        );
+
+        bool same(String actual, String expected) =>
+            expected.trim().isNotEmpty && actual.trim() == expected.trim();
+
+        final exact = page.results.where((candidate) {
+          return (name.isEmpty || same(candidate.name, name)) &&
+              (father.isEmpty || same(candidate.father, father)) &&
+              (grandfather.isEmpty ||
+                  same(candidate.grandfather, grandfather)) &&
+              (family.isEmpty || same(candidate.family, family)) &&
+              (mother.isEmpty || same(candidate.mother, mother)) &&
+              (birthDate.isEmpty || same(candidate.birth, birthDate));
+        });
+
+        all.addAll(exact);
+
+        if (!page.hasMore || page.results.isEmpty) break;
+        offset += page.results.length;
+      }
+
+      return all;
     }
 
     Future<CloudPerson?> unique({
@@ -88,11 +135,13 @@ class CloudRelativeFinder {
         family: family,
         mother: mother,
         birthDate: birthDate,
-        limit: 20,
+        limit: 2,
       );
       return matches.length == 1 ? matches.first : null;
     }
 
+    // Father is accepted only when the available paternal fields identify
+    // exactly one record.
     final father = person.father.isEmpty ||
             person.grandfather.isEmpty ||
             person.family.isEmpty
@@ -104,6 +153,7 @@ class CloudRelativeFinder {
           );
     if (father != null) add(CloudRelativeType.father, father);
 
+    // Mother is accepted only when name + mother's family identify one record.
     final mother = person.mother.isEmpty || person.motherFamily.isEmpty
         ? null
         : await unique(
@@ -112,41 +162,56 @@ class CloudRelativeFinder {
           );
     if (mother != null) add(CloudRelativeType.mother, mother);
 
-    final siblings = person.father.isEmpty ||
+    // Siblings are inferred only from one uniquely identified father. The
+    // father itself is excluded, preventing the parent from appearing as a
+    // sibling just because his own father matches the same chain.
+    if (father != null) {
+      final siblings = await searchAllExact(
+        father: person.father,
+        grandfather: person.grandfather,
+        family: person.family,
+      );
+
+      for (final sibling in siblings) {
+        if (sibling.id == father.id) continue;
+        add(CloudRelativeType.siblings, sibling);
+      }
+    }
+
+    // Children are inferred only when the current person can itself be
+    // uniquely resolved from the fields stored by a child for its father.
+    // Ambiguous duplicate names therefore produce no child claims.
+    final currentPerson = person.name.isEmpty ||
+            person.father.isEmpty ||
             person.grandfather.isEmpty ||
             person.family.isEmpty
-        ? const <CloudPerson>[]
-        : await searchExact(
+        ? null
+        : await unique(
+            name: person.name,
             father: person.father,
             grandfather: person.grandfather,
             family: person.family,
-            limit: 100,
           );
 
-    for (final sibling in siblings) {
-      add(CloudRelativeType.siblings, sibling);
+    if (currentPerson != null && currentPerson.id == person.id) {
+      final children = await searchAllExact(
+        father: person.name,
+        grandfather: person.father,
+        family: person.family,
+      );
+
+      for (final child in children) {
+        add(CloudRelativeType.children, child);
+      }
     }
 
-    final children = person.name.isEmpty ||
-            person.father.isEmpty ||
-            person.family.isEmpty
-        ? const <CloudPerson>[]
-        : await searchExact(
-            father: person.name,
-            grandfather: person.father,
-            family: person.family,
-            limit: 100,
-          );
-    for (final child in children) {
-      add(CloudRelativeType.children, child);
-    }
-
-    CloudPerson? paternalGrandfather;
+    // Grandparents are resolved by following the uniquely identified parent
+    // records rather than matching the names on the current person directly.
     if (father != null) {
       if (father.grandfather.isNotEmpty &&
           father.father.isNotEmpty &&
           father.family.isNotEmpty) {
-        paternalGrandfather = await unique(
+        final paternalGrandfather = await unique(
           name: father.grandfather,
           father: father.father,
           family: father.family,
@@ -165,7 +230,6 @@ class CloudRelativeFinder {
           add(CloudRelativeType.grandparents, paternalGrandmother);
         }
       }
-
     }
 
     if (mother != null) {
@@ -195,5 +259,4 @@ class CloudRelativeFinder {
 
     return candidates.values.toList();
   }
-
 }
