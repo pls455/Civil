@@ -54,6 +54,7 @@ class RelativeFinder {
         name: fatherName,
         father: grandfatherName,
         family: family,
+        grandfather: '',
       );
       if (father != null) {
         addMatch(RelativeType.father, father);
@@ -118,6 +119,7 @@ class RelativeFinder {
             name: name,
             father: fatherName,
             family: family,
+            grandfather: grandfatherName,
           )
         : null;
 
@@ -144,15 +146,25 @@ class RelativeFinder {
     required String name,
     required String father,
     required String family,
+    String grandfather = '',
   }) async {
     if (name.isEmpty || family.isEmpty) return null;
 
+    final conditions = <String>[
+      '"الاسم" = ?',
+      '"العائلة" = ?',
+      '"الاب" = ?',
+    ];
+    final arguments = <Object?>[name, family, father];
+
+    if (grandfather.isNotEmpty) {
+      conditions.add('"الجد" = ?');
+      arguments.add(grandfather);
+    }
+
     final rows = await db.rawQuery(
-      'SELECT * FROM "Sgaza" '
-      'WHERE "الاسم" = ? '
-      'AND "العائلة" = ? '
-      'AND "الاب" = ?',
-      [name, family, father],
+      'SELECT * FROM "Sgaza" WHERE ' + conditions.join(' AND '),
+      arguments,
     );
 
     return rows.length == 1 ? rows.first : null;
