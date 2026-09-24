@@ -207,101 +207,91 @@ class _SearchPageState extends State<SearchPage> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(title: const Text('البحث')),
-        body: Padding(
+        body: ListView(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      SegmentedButton<_SearchSource>(
-                        segments: const [
-                          ButtonSegment(
-                            value: _SearchSource.local,
-                            label: Text('محلي'),
-                            icon: Icon(Icons.storage_outlined),
-                          ),
-                          ButtonSegment(
-                            value: _SearchSource.cloud,
-                            label: Text('سحابي'),
-                            icon: Icon(Icons.cloud_outlined),
-                          ),
-                        ],
-                        selected: <_SearchSource>{source},
-                        onSelectionChanged: (value) {
-                          setState(() {
-                            source = value.first;
-                            rows = [];
-                            cloudRows = [];
-                            cloudHasMore = false;
-                            cloudOffset = 0;
-                            error = null;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      _field(nameController, 'الاسم'),
-                      _field(fatherController, 'اسم الأب'),
-                      _field(grandfatherController, 'اسم الجد'),
-                      _field(familyController, 'العائلة'),
-                      _field(identityController, 'الهوية'),
-                      _field(motherController, 'اسم الأم'),
-                      _field(
-                        birthDateController,
-                        'تاريخ الميلاد',
-                        action: TextInputAction.search,
-                      ),
-                      _buildFilterOptions(),
-                      _field(districtController,'الناحية'),
-                      _field(neighborhoodController,'الحي'),
-                      _field(birthplaceController,'مكان الميلاد'),
-                      _field(workplaceController,'مكان العمل'),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: busy ? null : search,
-                              icon: const Icon(Icons.search),
-                              label: Text(
-                                source == _SearchSource.local
-                                    ? 'بحث محلي'
-                                    : 'بحث سحابي',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          OutlinedButton(
-                            onPressed: busy ? null : _clearFilters,
-                            child: const Text('مسح الفلاتر'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (busy) const LinearProgressIndicator(),
-                      if (error != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            error!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 12),
-                    ],
+          children: [
+            SegmentedButton<_SearchSource>(
+              segments: const [
+                ButtonSegment(
+                  value: _SearchSource.local,
+                  label: Text('محلي'),
+                  icon: Icon(Icons.storage_outlined),
+                ),
+                ButtonSegment(
+                  value: _SearchSource.cloud,
+                  label: Text('سحابي'),
+                  icon: Icon(Icons.cloud_outlined),
+                ),
+              ],
+              selected: <_SearchSource>{source},
+              onSelectionChanged: (value) {
+                setState(() {
+                  source = value.first;
+                  rows = [];
+                  cloudRows = [];
+                  cloudHasMore = false;
+                  cloudOffset = 0;
+                  error = null;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            _field(nameController, 'الاسم'),
+            _field(fatherController, 'اسم الأب'),
+            _field(grandfatherController, 'اسم الجد'),
+            _field(familyController, 'العائلة'),
+            _field(identityController, 'الهوية'),
+            _field(motherController, 'اسم الأم'),
+            _field(
+              birthDateController,
+              'تاريخ الميلاد',
+              action: TextInputAction.search,
+            ),
+            _buildFilterOptions(),
+            _field(districtController, 'الناحية'),
+            _field(neighborhoodController, 'الحي'),
+            _field(birthplaceController, 'مكان الميلاد'),
+            _field(workplaceController, 'مكان العمل'),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: busy ? null : search,
+                    icon: const Icon(Icons.search),
+                    label: Text(
+                      source == _SearchSource.local
+                          ? 'بحث محلي'
+                          : 'بحث سحابي',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                OutlinedButton(
+                  onPressed: busy ? null : _clearFilters,
+                  child: const Text('مسح الفلاتر'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (busy) const LinearProgressIndicator(),
+            if (error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  error!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
                   ),
                 ),
               ),
-              const Divider(),
-              Expanded(
-                child: source == _SearchSource.local
-                    ? _buildLocalResults(context)
-                    : _buildCloudResults(context),
-              ),
-            ],
-          ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 4),
+            if (source == _SearchSource.local)
+              _buildLocalResults(context)
+            else
+              _buildCloudResults(context),
+          ],
         ),
       ),
     );
