@@ -297,14 +297,85 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildLocalResults(BuildContext context)=>rows.isEmpty?const Center(child:Text('لا توجد نتائج.')):ListView.separated(itemCount:rows.length,separatorBuilder:(_,_)=>const Divider(),itemBuilder:(context,index){final row=rows[index];return ListTile(title:Text('${row['الاسم']??''} ${row['الاب']??''} ${row['العائلة']??''}'),subtitle:Text('الهوية: ${row['الهوية']??''}\nمكان الميلاد: ${row['مكان الميلاد']??''}'),isThreeLine:true,trailing:const Icon(Icons.chevron_left),onTap:()async{final db=await DatabaseManager().open();if(!context.mounted)return;await Navigator.push(context,MaterialPageRoute(builder:(_)=>PersonDetailsPage(db:db,person:row)));},);});
+  Widget _buildLocalResults(BuildContext context) {
+    if (rows.isEmpty) return const Center(child: Text('لا توجد نتائج.'));
 
-  Widget _buildCloudResults(BuildContext context){
-    if(cloudRows.isEmpty)return const Center(child:Text('لا توجد نتائج.'));
-    return ListView.separated(itemCount:cloudRows.length+(cloudHasMore?1:0),separatorBuilder:(_,_)=>const Divider(),itemBuilder:(context,index){
-      if(index==cloudRows.length)return Padding(padding:const EdgeInsets.symmetric(vertical:12),child:FilledButton(onPressed:busy?null:_loadMoreCloud,child:const Text('تحميل المزيد')));
-      final person=cloudRows[index];
-      return ListTile(title:Text(person.displayName.isEmpty?'بدون اسم':person.displayName),subtitle:Text('الهوية: ${person.id}\nتاريخ الميلاد: ${person.birth}'),isThreeLine:true,trailing:const Icon(Icons.chevron_left),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>CloudPersonDetailsPage(person:person))));
-    });
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: rows.length,
+      separatorBuilder: (_, _) => const Divider(),
+      itemBuilder: (context, index) {
+        final row = rows[index];
+
+        return ListTile(
+          title: Text(
+            '${row['الاسم'] ?? ''} ${row['الاب'] ?? ''} ${row['العائلة'] ?? ''}',
+          ),
+          subtitle: Text(
+            'الهوية: ${row['الهوية'] ?? ''}\n'
+            'مكان الميلاد: ${row['مكان الميلاد'] ?? ''}',
+          ),
+          isThreeLine: true,
+          trailing: const Icon(Icons.chevron_left),
+          onTap: () async {
+            final db = await DatabaseManager().open();
+            if (!context.mounted) return;
+
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PersonDetailsPage(
+                  db: db,
+                  person: row,
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+
+  Widget _buildCloudResults(BuildContext context) {
+    if (cloudRows.isEmpty) return const Center(child: Text('لا توجد نتائج.'));
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: cloudRows.length + (cloudHasMore ? 1 : 0),
+      separatorBuilder: (_, _) => const Divider(),
+      itemBuilder: (context, index) {
+        if (index == cloudRows.length) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: FilledButton(
+              onPressed: busy ? null : _loadMoreCloud,
+              child: const Text('تحميل المزيد'),
+            ),
+          );
+        }
+
+        final person = cloudRows[index];
+
+        return ListTile(
+          title: Text(
+            person.displayName.isEmpty ? 'بدون اسم' : person.displayName,
+          ),
+          subtitle: Text(
+            'الهوية: ${person.id}\nتاريخ الميلاد: ${person.birth}',
+          ),
+          isThreeLine: true,
+          trailing: const Icon(Icons.chevron_left),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CloudPersonDetailsPage(person: person),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
