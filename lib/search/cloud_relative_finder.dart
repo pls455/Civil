@@ -153,13 +153,38 @@ class CloudRelativeFinder {
           );
     if (father != null) add(CloudRelativeType.father, father);
 
-    // Mother is accepted only when name + mother's family identify one record.
-    final mother = person.mother.isEmpty || person.motherFamily.isEmpty
-        ? null
-        : await unique(
-            name: person.mother,
-            family: person.motherFamily,
-          );
+    // Mother is accepted only when:
+    // 1) name + mother's family identify exactly one mother record;
+    // 2) that mother's children include the current person;
+    // 3) the child's full name matches the current record exactly.
+    CloudPerson? mother;
+    if (person.mother.isNotEmpty &&
+        person.motherFamily.isNotEmpty &&
+        person.fullName.isNotEmpty) {
+      final motherMatches = await searchAllExact(
+        name: person.mother,
+        family: person.motherFamily,
+      );
+
+      if (motherMatches.length == 1) {
+        final motherCandidate = motherMatches.first;
+        final motherChildren = await searchAllExact(
+          mother: motherCandidate.name,
+        );
+
+        final matchingChildren = motherChildren.where((child) {
+          return child.mother.trim() == motherCandidate.name.trim() &&
+              child.motherFamily.trim() == motherCandidate.family.trim() &&
+              child.fullName.trim() == person.fullName.trim();
+        }).toList();
+
+        if (matchingChildren.length == 1 &&
+            matchingChildren.first.id == person.id) {
+          mother = motherCandidate;
+        }
+      }
+    }
+
     if (mother != null) add(CloudRelativeType.mother, mother);
 
     // Siblings are inferred only from one uniquely identified father. The
