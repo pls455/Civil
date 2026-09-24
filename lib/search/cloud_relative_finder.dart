@@ -4,6 +4,7 @@ import 'search_engine.dart';
 enum CloudRelativeType {
   father,
   mother,
+  siblings,
   children,
   grandparents,
 }
@@ -110,6 +111,21 @@ class CloudRelativeFinder {
             family: person.motherFamily,
           );
     if (mother != null) add(CloudRelativeType.mother, mother);
+
+    final siblings = person.father.isEmpty ||
+            person.grandfather.isEmpty ||
+            person.family.isEmpty
+        ? const <CloudPerson>[]
+        : await searchExact(
+            father: person.father,
+            grandfather: person.grandfather,
+            family: person.family,
+            limit: 100,
+          );
+
+    for (final sibling in siblings) {
+      add(CloudRelativeType.siblings, sibling);
+    }
 
     final children = person.name.isEmpty ||
             person.father.isEmpty ||
