@@ -84,20 +84,159 @@ class _SearchPageState extends State<SearchPage> {
 
   void _clearFilters(){setState(() {selectedProvinceCode=null;selectedAreaCode=null;selectedGender=null;selectedMaritalStatus=null;selectedDistrict=null;selectedNeighborhood=null;selectedBirthplace=null;selectedWorkplace=null;});}
 
-  @override Widget build(BuildContext context){
-    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('البحث')),body:Padding(padding:const EdgeInsets.all(16),child:Column(children:[
-      SegmentedButton<_SearchSource>(segments:const [ButtonSegment(value:_SearchSource.local,label:Text('محلي'),icon:Icon(Icons.storage_outlined)),ButtonSegment(value:_SearchSource.cloud,label:Text('سحابي'),icon:Icon(Icons.cloud_outlined))],selected:<_SearchSource>{source},onSelectionChanged:(value){setState(() {source=value.first;rows=[];cloudRows=[];cloudHasMore=false;cloudOffset=0;error=null;});}),
-      const SizedBox(height:12),
-      _field(nameController,'الاسم'),_field(fatherController,'اسم الأب'),_field(grandfatherController,'اسم الجد'),_field(familyController,'العائلة'),_field(identityController,'الهوية'),_field(motherController,'اسم الأم'),_field(birthDateController,'تاريخ الميلاد',action:TextInputAction.search),
-      _dropdown('المحافظة',selectedProvinceCode,provinces,(v)=>setState(()=>selectedProvinceCode=v)),_dropdown('المنطقة',selectedAreaCode,areas,(v)=>setState(()=>selectedAreaCode=v)),
-      _valueDropdown('الجنس',selectedGender,genders,(v)=>setState(()=>selectedGender=v)),_valueDropdown('الحالة الاجتماعية',selectedMaritalStatus,maritalStatuses,(v)=>setState(()=>selectedMaritalStatus=v)),
-      _valueDropdown('الناحية',selectedDistrict,districts,(v)=>setState(()=>selectedDistrict=v)),_valueDropdown('الحي',selectedNeighborhood,neighborhoods,(v)=>setState(()=>selectedNeighborhood=v)),
-      _valueDropdown('مكان الميلاد',selectedBirthplace,birthplaces,(v)=>setState(()=>selectedBirthplace=v)),_valueDropdown('مكان العمل',selectedWorkplace,workplaces,(v)=>setState(()=>selectedWorkplace=v)),
-      if(filterError!=null)Align(alignment:AlignmentDirectional.centerStart,child:Text(filterError!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
-      Row(children:[Expanded(child:FilledButton.icon(onPressed:busy?null:search,icon:const Icon(Icons.search),label:Text(source==_SearchSource.local?'بحث محلي':'بحث سحابي'))),const SizedBox(width:10),OutlinedButton(onPressed:busy?null:_clearFilters,child:const Text('مسح الفلاتر')),]),
-      const SizedBox(height:12),if(busy||loadingFilters)const LinearProgressIndicator(),
-      if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),const SizedBox(height:8),
-      Expanded(child:source==_SearchSource.local?_buildLocalResults(context):_buildCloudResults(context)),
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('البحث')),
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      SegmentedButton<_SearchSource>(
+                        segments: const [
+                          ButtonSegment(
+                            value: _SearchSource.local,
+                            label: Text('محلي'),
+                            icon: Icon(Icons.storage_outlined),
+                          ),
+                          ButtonSegment(
+                            value: _SearchSource.cloud,
+                            label: Text('سحابي'),
+                            icon: Icon(Icons.cloud_outlined),
+                          ),
+                        ],
+                        selected: <_SearchSource>{source},
+                        onSelectionChanged: (value) {
+                          setState(() {
+                            source = value.first;
+                            rows = [];
+                            cloudRows = [];
+                            cloudHasMore = false;
+                            cloudOffset = 0;
+                            error = null;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _field(nameController, 'الاسم'),
+                      _field(fatherController, 'اسم الأب'),
+                      _field(grandfatherController, 'اسم الجد'),
+                      _field(familyController, 'العائلة'),
+                      _field(identityController, 'الهوية'),
+                      _field(motherController, 'اسم الأم'),
+                      _field(
+                        birthDateController,
+                        'تاريخ الميلاد',
+                        action: TextInputAction.search,
+                      ),
+                      _dropdown(
+                        'المحافظة',
+                        selectedProvinceCode,
+                        provinces,
+                        (v) => setState(() => selectedProvinceCode = v),
+                      ),
+                      _dropdown(
+                        'المنطقة',
+                        selectedAreaCode,
+                        areas,
+                        (v) => setState(() => selectedAreaCode = v),
+                      ),
+                      _valueDropdown(
+                        'الجنس',
+                        selectedGender,
+                        genders,
+                        (v) => setState(() => selectedGender = v),
+                      ),
+                      _valueDropdown(
+                        'الحالة الاجتماعية',
+                        selectedMaritalStatus,
+                        maritalStatuses,
+                        (v) => setState(() => selectedMaritalStatus = v),
+                      ),
+                      _valueDropdown(
+                        'الناحية',
+                        selectedDistrict,
+                        districts,
+                        (v) => setState(() => selectedDistrict = v),
+                      ),
+                      _valueDropdown(
+                        'الحي',
+                        selectedNeighborhood,
+                        neighborhoods,
+                        (v) => setState(() => selectedNeighborhood = v),
+                      ),
+                      _valueDropdown(
+                        'مكان الميلاد',
+                        selectedBirthplace,
+                        birthplaces,
+                        (v) => setState(() => selectedBirthplace = v),
+                      ),
+                      _valueDropdown(
+                        'مكان العمل',
+                        selectedWorkplace,
+                        workplaces,
+                        (v) => setState(() => selectedWorkplace = v),
+                      ),
+                      if (filterError != null)
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Text(
+                            filterError!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: busy ? null : search,
+                              icon: const Icon(Icons.search),
+                              label: Text(
+                                source == _SearchSource.local
+                                    ? 'بحث محلي'
+                                    : 'بحث سحابي',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          OutlinedButton(
+                            onPressed: busy ? null : _clearFilters,
+                            child: const Text('مسح الفلاتر'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (busy || loadingFilters)
+                        const LinearProgressIndicator(),
+                      if (error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: source == _SearchSource.local
+                    ? _buildLocalResults(context)
+                    : _buildCloudResults(context),
+              ),
             ],
           ),
         ),
