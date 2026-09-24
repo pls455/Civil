@@ -49,8 +49,8 @@ class _SearchPageState extends State<SearchPage> {
       final loadedMaritalStatuses=await _loadValues(db,'قائمة_الموظفين','الحالة الجتماعية');
       final loadedDistricts=await _loadValues(db,'Sgaza','الناحية'); final loadedNeighborhoods=await _loadValues(db,'Sgaza','الحي');
       final loadedBirthplaces=await _loadValues(db,'Sgaza','مكان الميلاد'); final loadedWorkplaces=await _loadValues(db,'قائمة_الموظفين','مكان العمل');
-      if(!mounted)return; setState(()=>{provinces=loadedProvinces;areas=loadedAreas;genders=loadedGenders;maritalStatuses=loadedMaritalStatuses;districts=loadedDistricts;neighborhoods=loadedNeighborhoods;birthplaces=loadedBirthplaces;workplaces=loadedWorkplaces;loadingFilters=false;filterError=null;});
-    } catch(e){if(mounted)setState(()=>{loadingFilters=false;filterError='تعذر تحميل الفلاتر من قاعدة البيانات: $e';});}
+      if(!mounted)return; setState(() {provinces=loadedProvinces;areas=loadedAreas;genders=loadedGenders;maritalStatuses=loadedMaritalStatuses;districts=loadedDistricts;neighborhoods=loadedNeighborhoods;birthplaces=loadedBirthplaces;workplaces=loadedWorkplaces;loadingFilters=false;filterError=null;});
+    } catch(e){if(mounted)setState(() {loadingFilters=false;filterError='تعذر تحميل الفلاتر من قاعدة البيانات: $e';});}
   }
 
   SearchQuery _query()=>SearchQuery(name:nameController.text,father:fatherController.text,grandfather:grandfatherController.text,family:familyController.text,identity:identityController.text,mother:motherController.text,birthDate:birthDateController.text,provinceCode:selectedProvinceCode,areaCode:selectedAreaCode,gender:selectedGender,maritalStatus:selectedMaritalStatus,district:selectedDistrict,neighborhood:selectedNeighborhood,birthplace:selectedBirthplace,workplace:selectedWorkplace);
@@ -58,14 +58,14 @@ class _SearchPageState extends State<SearchPage> {
   Future<void> search() async {
     final query=_query(); if(query.isEmpty)return;
     if(source==_SearchSource.cloud && _hasCloudUnsupportedFilters(query)){setState(()=>error='هذه الفلاتر غير مدعومة من واجهة البحث السحابي الحالية: المحافظة، الحالة الاجتماعية، الناحية، الحي، مكان الميلاد، مكان العمل.');return;}
-    setState(()=>{busy=true;error=null;});
+    setState(() {busy=true;error=null;});
     try {
       if(source==_SearchSource.local){
         final db=await DatabaseManager().open(); final result=await SearchEngine(db).search(query);
         if(!mounted)return; setState(()=>rows=result);
       } else {
         final result=await cloudEngine.search(query); if(!mounted)return;
-        setState(()=>{cloudRows=result.results;cloudOffset=result.offset+result.results.length;cloudHasMore=result.hasMore;});
+        setState(() {cloudRows=result.results;cloudOffset=result.offset+result.results.length;cloudHasMore=result.hasMore;});
       }
     } catch(e){if(mounted)setState(()=>error='تعذر البحث: $e');} finally {if(mounted)setState(()=>busy=false);}
   }
@@ -74,7 +74,7 @@ class _SearchPageState extends State<SearchPage> {
 
   Future<void> _loadMoreCloud() async {
     if(busy||!cloudHasMore)return; final query=_query(); setState(()=>busy=true);
-    try { final result=await cloudEngine.search(query,offset:cloudOffset); if(!mounted)return; setState(()=>{cloudRows.addAll(result.results);cloudOffset=result.offset+result.results.length;cloudHasMore=result.hasMore;}); }
+    try { final result=await cloudEngine.search(query,offset:cloudOffset); if(!mounted)return; setState(() {cloudRows.addAll(result.results);cloudOffset=result.offset+result.results.length;cloudHasMore=result.hasMore;}); }
     catch(e){if(mounted)setState(()=>error='تعذر تحميل المزيد: $e');} finally {if(mounted)setState(()=>busy=false);}
   }
 
@@ -82,12 +82,12 @@ class _SearchPageState extends State<SearchPage> {
   Widget _dropdown(String label,String? value,List<_LookupOption> options,ValueChanged<String?> onChanged)=>Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(initialValue:value,isExpanded:true,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),items:options.map((o)=>DropdownMenuItem<String>(value:o.code,child:Text(o.name))).toList(),onChanged:loadingFilters?null:onChanged));
   Widget _valueDropdown(String label,String? value,List<_ValueOption> options,ValueChanged<String?> onChanged)=>Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(initialValue:value,isExpanded:true,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),items:options.map((o)=>DropdownMenuItem<String>(value:o.value,child:Text(o.value))).toList(),onChanged:loadingFilters?null:onChanged));
 
-  void _clearFilters(){setState(()=>{selectedProvinceCode=null;selectedAreaCode=null;selectedGender=null;selectedMaritalStatus=null;selectedDistrict=null;selectedNeighborhood=null;selectedBirthplace=null;selectedWorkplace=null;});}
-  void _clearResults(){setState(()=>{rows=[];cloudRows=[];cloudHasMore=false;cloudOffset=0;error=null;});}
+  void _clearFilters(){setState(() {selectedProvinceCode=null;selectedAreaCode=null;selectedGender=null;selectedMaritalStatus=null;selectedDistrict=null;selectedNeighborhood=null;selectedBirthplace=null;selectedWorkplace=null;});}
+  void _clearResults(){setState(() {rows=[];cloudRows=[];cloudHasMore=false;cloudOffset=0;error=null;});}
 
   @override Widget build(BuildContext context){
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('البحث')),body:Padding(padding:const EdgeInsets.all(16),child:Column(children:[
-      SegmentedButton<_SearchSource>(segments:const [ButtonSegment(value:_SearchSource.local,label:Text('محلي'),icon:Icon(Icons.storage_outlined)),ButtonSegment(value:_SearchSource.cloud,label:Text('سحابي'),icon:Icon(Icons.cloud_outlined))],selected:<_SearchSource>{source},onSelectionChanged:(value){setState(()=>{source=value.first;rows=[];cloudRows=[];cloudHasMore=false;cloudOffset=0;error=null;});}),
+      SegmentedButton<_SearchSource>(segments:const [ButtonSegment(value:_SearchSource.local,label:Text('محلي'),icon:Icon(Icons.storage_outlined)),ButtonSegment(value:_SearchSource.cloud,label:Text('سحابي'),icon:Icon(Icons.cloud_outlined))],selected:<_SearchSource>{source},onSelectionChanged:(value){setState(() {source=value.first;rows=[];cloudRows=[];cloudHasMore=false;cloudOffset=0;error=null;});}),
       const SizedBox(height:12),
       _field(nameController,'الاسم'),_field(fatherController,'اسم الأب'),_field(grandfatherController,'اسم الجد'),_field(familyController,'العائلة'),_field(identityController,'الهوية'),_field(motherController,'اسم الأم'),_field(birthDateController,'تاريخ الميلاد',action:TextInputAction.search),
       _dropdown('المحافظة',selectedProvinceCode,provinces,(v)=>setState(()=>selectedProvinceCode=v)),_dropdown('المنطقة',selectedAreaCode,areas,(v)=>setState(()=>selectedAreaCode=v)),
