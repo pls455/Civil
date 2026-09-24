@@ -29,12 +29,12 @@ class _SearchPageState extends State<SearchPage> {
   final workplaceController=TextEditingController();
   final cloudEngine=CloudSearchEngine();
   _SearchSource source=_SearchSource.local;
-  bool busy=false, loadingFilters=true; String? error, filterError;
+  bool busy=false, loadingFilters=false, filtersLoaded=false; String? error, filterError;
   String? selectedProvinceCode, selectedAreaCode, selectedGender, selectedMaritalStatus;
   List<_LookupOption> provinces=[], areas=[]; List<_ValueOption> genders=[], maritalStatuses=[];
   List<Map<String,Object?>> rows=[]; List<CloudPerson> cloudRows=[]; bool cloudHasMore=false; int cloudOffset=0;
 
-  @override void initState(){super.initState(); WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _loadFilters(); });}
+  @override void initState(){super.initState();}
   @override void dispose(){nameController.dispose(); fatherController.dispose(); grandfatherController.dispose(); familyController.dispose(); identityController.dispose(); motherController.dispose(); birthDateController.dispose(); districtController.dispose(); neighborhoodController.dispose(); birthplaceController.dispose(); workplaceController.dispose(); cloudEngine.close(); super.dispose();}
 
   Future<List<_ValueOption>> _loadValues(dynamic db,String table,String column) async {
@@ -43,6 +43,8 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _loadFilters() async {
+    if (loadingFilters || filtersLoaded) return;
+    setState(() { loadingFilters = true; filterError = null; });
     try {
       final db=await DatabaseManager().open();
       final provinceRows=await db.rawQuery('SELECT "رقم المحافظة" AS code, "اسم المحافظة" AS name FROM "المحافظات" ORDER BY "اسم المحافظة"');
@@ -60,6 +62,7 @@ class _SearchPageState extends State<SearchPage> {
         areas=loadedAreas;
         genders=loadedGenders;
         maritalStatuses=loadedMaritalStatuses;
+        filtersLoaded=true;
         loadingFilters=false;
         filterError=null;
       });
@@ -122,6 +125,82 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
+  Widget _buildFilterOptions() {
+    if (!filtersLoaded) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'خيارات الفلاتر',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'خيارات المحافظة والمنطقة والجنس والحالة الاجتماعية '
+                'تُقرأ من قاعدة البيانات عند الطلب فقط.',
+              ),
+              const SizedBox(height: 10),
+              FilledButton.icon(
+                onPressed: loadingFilters ? null : _loadFilters,
+                icon: loadingFilters
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.tune),
+                label: Text(
+                  loadingFilters
+                      ? 'جارٍ تحميل خيارات الفلاتر...'
+                      : 'تحميل خيارات الفلاتر',
+                ),
+              ),
+              if (filterError != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  filterError!,
+                  style: TextStyle(color: Colors.red.shade700),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        _dropdown(
+          'المحافظة',
+          selectedProvinceCode,
+          provinces,
+          (value) => setState(() => selectedProvinceCode = value),
+        ),
+        _dropdown(
+          'المنطقة',
+          selectedAreaCode,
+          areas,
+          (value) => setState(() => selectedAreaCode = value),
+        ),
+        _valueDropdown(
+          'الجنس',
+          selectedGender,
+          genders,
+          (value) => setState(() => selectedGender = value),
+        ),
+        _valueDropdown(
+          'الحالة الاجتماعية',
+          selectedMaritalStatus,
+          maritalStatuses,
+          (value) => setState(() => selectedMaritalStatus = value),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -173,44 +252,11 @@ class _SearchPageState extends State<SearchPage> {
                         'تاريخ الميلاد',
                         action: TextInputAction.search,
                       ),
-                      _dropdown(
-                        'المحافظة',
-                        selectedProvinceCode,
-                        provinces,
-                        (v) => setState(() => selectedProvinceCode = v),
-                      ),
-                      _dropdown(
-                        'المنطقة',
-                        selectedAreaCode,
-                        areas,
-                        (v) => setState(() => selectedAreaCode = v),
-                      ),
-                      _valueDropdown(
-                        'الجنس',
-                        selectedGender,
-                        genders,
-                        (v) => setState(() => selectedGender = v),
-                      ),
-                      _valueDropdown(
-                        'الحالة الاجتماعية',
-                        selectedMaritalStatus,
-                        maritalStatuses,
-                        (v) => setState(() => selectedMaritalStatus = v),
-                      ),
+                      _buildFilterOptions(),
                       _field(districtController,'الناحية'),
                       _field(neighborhoodController,'الحي'),
                       _field(birthplaceController,'مكان الميلاد'),
                       _field(workplaceController,'مكان العمل'),
-                      if (filterError != null)
-                        Align(
-                          alignment: AlignmentDirectional.centerStart,
-                          child: Text(
-                            filterError!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                          ),
-                        ),
                       Row(
                         children: [
                           Expanded(
@@ -232,8 +278,7 @@ class _SearchPageState extends State<SearchPage> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (busy || loadingFilters)
-                        const LinearProgressIndicator(),
+                      if (busy) const LinearProgressIndicator(),
                       if (error != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
