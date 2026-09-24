@@ -159,7 +159,7 @@ class RelativeFinder {
     }
 
     final rows = await db.rawQuery(
-      'SELECT * FROM "Sgaza" WHERE ' + conditions.join(' AND '),
+      'SELECT * FROM "Sgaza" WHERE ${conditions.join(' AND ')}',
       arguments,
     );
 
