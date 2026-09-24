@@ -7,7 +7,6 @@ enum RelativeType {
   grandfather,
   children,
   siblings,
-  extendedFamily,
 }
 
 class RelativeCandidate {
@@ -38,84 +37,93 @@ class RelativeFinder {
 
     final candidates = <String, RelativeCandidate>{};
 
-    Future<void> addMatches(
-      RelativeType type,
-      String sql,
-      List<Object?> args,
-    ) async {
-      final rows = await db.rawQuery(sql, args);
-      for (final row in rows) {
-        final rowIdentity = _value(row, 'الهوية');
-        if (rowIdentity.isEmpty || rowIdentity == identity) continue;
-        candidates['$type:$rowIdentity'] =
-            RelativeCandidate(type: type, person: row);
-      }
+    void addMatch(RelativeType type, Map<String, Object?> row) {
+      final rowIdentity = _value(row, 'الهوية');
+      if (rowIdentity.isEmpty || rowIdentity == identity) return;
+      candidates['$type:$rowIdentity'] =
+          RelativeCandidate(type: type, person: row);
     }
 
-    // The strongest available parent relation in this schema:
-    // the candidate's name is the current person's recorded father,
-    // while the candidate's father/grandfather fields continue the chain.
+    // Resolve the recorded father only when name + father + family
+    // identifies exactly one person. Names by themselves are not identities.
+    Map<String, Object?>? father;
     if (fatherName.isNotEmpty &&
         grandfatherName.isNotEmpty &&
         family.isNotEmpty) {
-      final rows = await db.rawQuery(
-        'SELECT * FROM "Sgaza" '
-        'WHERE "الاسم" = ? '
-        'AND "العائلة" = ? '
-        'AND "الجد" = ?',
-        [fatherName, family, grandfatherName],
+      father = await _findUniquePerson(
+        name: fatherName,
+        father: grandfatherName,
+        family: family,
       );
-      if (rows.length == 1) {
-        await addMatches(
-          RelativeType.father,
-          'SELECT * FROM "Sgaza" WHERE "الهوية" = ?',
-          [_value(rows.first, 'الهوية')],
-        );
+      if (father != null) {
+        addMatch(RelativeType.father, father);
       }
     }
 
-    // The same chain lets us resolve the recorded grandfather through
-    // the candidate father, when the database contains that person.
-    if (grandfatherName.isNotEmpty &&
+    // Follow the identified father record to resolve the grandfather.
+    Map<String, Object?>? grandfather;
+    if (father != null) {
+      final father'sFather = _value(father, 'الاب');
+      final father'sGrandfather = _value(father, 'الجد');
+      final father'sFamily = _value(father, 'العائلة');
+
+      if (father'sGrandfather.isNotEmpty &&
+          father'sFather.isNotEmpty &&
+          father'sFamily.isNotEmpty) {
+        grandfather = await _findUniquePerson(
+          name: father'sGrandfather,
+          father: father'sFather,
+          family: father'sFamily,
+        );
+        if (grandfather != null) {
+          addMatch(RelativeType.grandfather, grandfather);
+        }
+      }
+    }
+
+    // Siblings are accepted only after the current person's father has been
+    // uniquely identified. The father itself is excluded from this group.
+    if (father != null &&
         fatherName.isNotEmpty &&
-        family.isNotEmpty) {
-      final rows = await db.rawQuery(
-        'SELECT * FROM "Sgaza" '
-        'WHERE "الاسم" = ? '
-        'AND "الاب" = ? '
-        'AND "العائلة" = ?',
-        [grandfatherName, fatherName, family],
-      );
-      if (rows.length == 1) {
-        await addMatches(
-          RelativeType.grandfather,
-          'SELECT * FROM "Sgaza" WHERE "الهوية" = ?',
-          [_value(rows.first, 'الهوية')],
-        );
-      }
-    }
-
-    // Same father + grandfather + family is the strongest available
-    // evidence for people belonging to the same immediate sibling group.
-    if (fatherName.isNotEmpty &&
         grandfatherName.isNotEmpty &&
         family.isNotEmpty) {
-      await addMatches(
-        RelativeType.siblings,
+      final rows = await db.rawQuery(
         'SELECT * FROM "Sgaza" '
         'WHERE "الهوية" != ? '
+        'AND "الهوية" != ? '
         'AND "الاب" = ? '
         'AND "الجد" = ? '
         'AND "العائلة" = ?',
-        [identity, fatherName, grandfatherName, family],
+        [
+          identity,
+          _value(father, 'الهوية'),
+          fatherName,
+          grandfatherName,
+          family,
+        ],
       );
+
+      for (final row in rows) {
+        addMatch(RelativeType.siblings, row);
+      }
     }
 
-    // If the current person is a parent, this reverses the same relation
-    // and finds records that name them as their father.
-    if (name.isNotEmpty && grandfatherName.isNotEmpty && family.isNotEmpty) {
-      await addMatches(
-        RelativeType.children,
+    // Children are accepted only when the current person itself is uniquely
+    // identified by the same genealogical fields stored for its father.
+    final currentPerson = name.isNotEmpty &&
+            fatherName.isNotEmpty &&
+            grandfatherName.isNotEmpty &&
+            family.isNotEmpty
+        ? await _findUniquePerson(
+            name: name,
+            father: fatherName,
+            family: family,
+          )
+        : null;
+
+    if (currentPerson != null &&
+        _value(currentPerson, 'الهوية') == identity) {
+      final rows = await db.rawQuery(
         'SELECT * FROM "Sgaza" '
         'WHERE "الهوية" != ? '
         'AND "الاب" = ? '
@@ -123,23 +131,31 @@ class RelativeFinder {
         'AND "العائلة" = ?',
         [identity, name, fatherName, family],
       );
-    }
 
-    // Shared grandfather with a different father is useful evidence of a
-    // wider family connection, but is deliberately not called "cousin".
-    if (grandfatherName.isNotEmpty && family.isNotEmpty) {
-      await addMatches(
-        RelativeType.extendedFamily,
-        'SELECT * FROM "Sgaza" '
-        'WHERE "الهوية" != ? '
-        'AND "الجد" = ? '
-        'AND "العائلة" = ? '
-        'AND "الاب" != ?',
-        [identity, grandfatherName, fatherName],
-      );
+      for (final row in rows) {
+        addMatch(RelativeType.children, row);
+      }
     }
 
     return candidates.values.toList();
+  }
+
+  Future<Map<String, Object?>?> _findUniquePerson({
+    required String name,
+    required String father,
+    required String family,
+  }) async {
+    if (name.isEmpty || family.isEmpty) return null;
+
+    final rows = await db.rawQuery(
+      'SELECT * FROM "Sgaza" '
+      'WHERE "الاسم" = ? '
+      'AND "العائلة" = ? '
+      'AND "الاب" = ?',
+      [name, family, father],
+    );
+
+    return rows.length == 1 ? rows.first : null;
   }
 
   static String _value(Map<String, Object?> row, String key) {
