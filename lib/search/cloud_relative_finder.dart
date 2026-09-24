@@ -140,8 +140,6 @@ class CloudRelativeFinder {
       return matches.length == 1 ? matches.first : null;
     }
 
-    // Father is accepted only when the available paternal fields identify
-    // exactly one record.
     final father = person.father.isEmpty ||
             person.grandfather.isEmpty ||
             person.family.isEmpty
@@ -153,33 +151,49 @@ class CloudRelativeFinder {
           );
     if (father != null) add(CloudRelativeType.father, father);
 
-    // Mother is accepted only when:
-    // 1) name + mother's family identify exactly one mother record;
-    // 2) that mother's children include the current person;
-    // 3) the child's full name matches the current record exactly.
+    // Mother:
+    // 1) Identify the mother uniquely by her name + family.
+    // 2) Search directly for the current person using his full four-part name
+    //    as the child record and the mother's name.
+    // 3) Confirm the child's m_family equals the mother's family and the
+    //    returned id is exactly the current person's id.
     CloudPerson? mother;
     if (person.mother.isNotEmpty &&
         person.motherFamily.isNotEmpty &&
-        person.fullName.isNotEmpty) {
-      final motherMatches = await searchAllExact(
+        person.id.isNotEmpty &&
+        person.name.isNotEmpty &&
+        person.father.isNotEmpty &&
+        person.grandfather.isNotEmpty &&
+        person.family.isNotEmpty) {
+      final motherMatches = await searchExact(
         name: person.mother,
         family: person.motherFamily,
+        limit: 2,
       );
 
       if (motherMatches.length == 1) {
         final motherCandidate = motherMatches.first;
-        final motherChildren = await searchAllExact(
+
+        final childMatches = await searchExact(
+          name: person.name,
+          father: person.father,
+          grandfather: person.grandfather,
+          family: person.family,
           mother: motherCandidate.name,
+          limit: 2,
         );
 
-        final matchingChildren = motherChildren.where((child) {
-          return child.mother.trim() == motherCandidate.name.trim() &&
-              child.motherFamily.trim() == motherCandidate.family.trim() &&
-              child.fullName.trim() == person.fullName.trim();
+        final verifiedChildren = childMatches.where((child) {
+          return child.id == person.id &&
+              child.name.trim() == person.name.trim() &&
+              child.father.trim() == person.father.trim() &&
+              child.grandfather.trim() == person.grandfather.trim() &&
+              child.family.trim() == person.family.trim() &&
+              child.mother.trim() == motherCandidate.name.trim() &&
+              child.motherFamily.trim() == motherCandidate.family.trim();
         }).toList();
 
-        if (matchingChildren.length == 1 &&
-            matchingChildren.first.id == person.id) {
+        if (verifiedChildren.length == 1) {
           mother = motherCandidate;
         }
       }
@@ -187,9 +201,6 @@ class CloudRelativeFinder {
 
     if (mother != null) add(CloudRelativeType.mother, mother);
 
-    // Siblings are inferred only from one uniquely identified father. The
-    // father itself is excluded, preventing the parent from appearing as a
-    // sibling just because his own father matches the same chain.
     if (father != null) {
       final siblings = await searchAllExact(
         father: person.father,
@@ -204,9 +215,6 @@ class CloudRelativeFinder {
       }
     }
 
-    // Children are inferred only when the current person can itself be
-    // uniquely resolved from the fields stored by a child for its father.
-    // Ambiguous duplicate names therefore produce no child claims.
     final currentPerson = person.name.isEmpty ||
             person.father.isEmpty ||
             person.grandfather.isEmpty ||
@@ -232,8 +240,6 @@ class CloudRelativeFinder {
       }
     }
 
-    // Grandparents are resolved by following the uniquely identified parent
-    // records rather than matching the names on the current person directly.
     if (father != null) {
       if (father.grandfather.isNotEmpty &&
           father.father.isNotEmpty &&
