@@ -4,13 +4,10 @@ import 'search_engine.dart';
 enum CloudRelativeType {
   father,
   mother,
-  grandparents,
-  siblings,
-  paternalUncles,
-  maternalUncles,
   children,
-  grandchildren,
+  grandparents,
 }
+
 
 class CloudRelativeCandidate {
   final CloudRelativeType type;
@@ -114,20 +111,6 @@ class CloudRelativeFinder {
           );
     if (mother != null) add(CloudRelativeType.mother, mother);
 
-    final siblings = person.father.isEmpty ||
-            person.grandfather.isEmpty ||
-            person.family.isEmpty
-        ? const <CloudPerson>[]
-        : await searchExact(
-            father: person.father,
-            grandfather: person.grandfather,
-            family: person.family,
-            limit: 100,
-          );
-    for (final sibling in siblings) {
-      add(CloudRelativeType.siblings, sibling);
-    }
-
     final children = person.name.isEmpty ||
             person.father.isEmpty ||
             person.family.isEmpty
@@ -167,22 +150,6 @@ class CloudRelativeFinder {
         }
       }
 
-      if (father.family.isNotEmpty &&
-          paternalGrandfather != null &&
-          paternalGrandfather.name.isNotEmpty &&
-          paternalGrandfather.father.isNotEmpty) {
-        final paternalSiblings = await searchExact(
-          father: paternalGrandfather.name,
-          grandfather: paternalGrandfather.father,
-          family: father.family,
-          limit: 100,
-        );
-        for (final uncle in paternalSiblings) {
-          if (_isMale(uncle.gender) && uncle.id != father.id) {
-            add(CloudRelativeType.paternalUncles, uncle);
-          }
-        }
-      }
     }
 
     if (mother != null) {
@@ -209,48 +176,7 @@ class CloudRelativeFinder {
         }
       }
 
-      if (mother.father.isNotEmpty &&
-          mother.grandfather.isNotEmpty &&
-          mother.family.isNotEmpty) {
-        final maternalSiblings = await searchExact(
-          father: mother.father,
-          grandfather: mother.grandfather,
-          family: mother.family,
-          limit: 100,
-        );
-        for (final uncle in maternalSiblings) {
-          if (_isMale(uncle.gender) && uncle.id != mother.id) {
-            add(CloudRelativeType.maternalUncles, uncle);
-          }
-        }
-      }
-    }
-
-    final uniqueChildNames = children
-        .map((child) => child.name.trim())
-        .where((value) => value.isNotEmpty)
-        .toSet();
-
-    for (final childName in uniqueChildNames) {
-      final grandchildren = await searchExact(
-        father: childName,
-        grandfather: person.name,
-        family: person.family,
-        limit: 100,
-      );
-      for (final grandchild in grandchildren) {
-        add(CloudRelativeType.grandchildren, grandchild);
-      }
-    }
-
     return candidates.values.toList();
   }
 
-  static bool _isMale(String value) {
-    final normalized = value.trim().toLowerCase();
-    return normalized == 'ذكر' ||
-        normalized == 'male' ||
-        normalized == 'm' ||
-        normalized == 'man';
-  }
 }
