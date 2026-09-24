@@ -152,11 +152,12 @@ class CloudRelativeFinder {
     if (father != null) add(CloudRelativeType.father, father);
 
     // Mother:
-    // 1) Identify the mother uniquely by her name + family.
-    // 2) Search directly for the current person using his full four-part name
-    //    as the child record and the mother's name.
-    // 3) Confirm the child's m_family equals the mother's family and the
-    //    returned id is exactly the current person's id.
+    // The mother's name + family can match many records. Therefore we do not
+    // require that pair to be unique. Each matching mother candidate is
+    // verified against the current child. The child must match by its complete
+    // four-part name, mother name, and mother's family, and its id must be the
+    // current person's id. The mother relation is accepted only if exactly one
+    // mother candidate survives that verification.
     CloudPerson? mother;
     if (person.mother.isNotEmpty &&
         person.motherFamily.isNotEmpty &&
@@ -165,15 +166,14 @@ class CloudRelativeFinder {
         person.father.isNotEmpty &&
         person.grandfather.isNotEmpty &&
         person.family.isNotEmpty) {
-      final motherMatches = await searchExact(
+      final motherMatches = await searchAllExact(
         name: person.mother,
         family: person.motherFamily,
-        limit: 2,
       );
 
-      if (motherMatches.length == 1) {
-        final motherCandidate = motherMatches.first;
+      final verifiedMothers = <String, CloudPerson>{};
 
+      for (final motherCandidate in motherMatches) {
         final childMatches = await searchExact(
           name: person.name,
           father: person.father,
@@ -183,19 +183,28 @@ class CloudRelativeFinder {
           limit: 2,
         );
 
-        final verifiedChildren = childMatches.where((child) {
-          return child.id == person.id &&
+        for (final child in childMatches) {
+          final fullNameMatches = person.fullName.trim().isEmpty ||
+              child.fullName.trim() == person.fullName.trim();
+
+          final childMatchesCurrentPerson =
+              child.id == person.id &&
+              fullNameMatches &&
               child.name.trim() == person.name.trim() &&
               child.father.trim() == person.father.trim() &&
               child.grandfather.trim() == person.grandfather.trim() &&
               child.family.trim() == person.family.trim() &&
               child.mother.trim() == motherCandidate.name.trim() &&
               child.motherFamily.trim() == motherCandidate.family.trim();
-        }).toList();
 
-        if (verifiedChildren.length == 1) {
-          mother = motherCandidate;
+          if (childMatchesCurrentPerson) {
+            verifiedMothers[motherCandidate.id] = motherCandidate;
+          }
         }
+      }
+
+      if (verifiedMothers.length == 1) {
+        mother = verifiedMothers.values.first;
       }
     }
 
