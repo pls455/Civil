@@ -45,8 +45,6 @@ class RelativeFinder {
           RelativeCandidate(type: type, person: row);
     }
 
-    // Resolve the recorded father only when name + father + family
-    // identifies exactly one person. Names by themselves are not identities.
     Map<String, Object?>? father;
     if (fatherName.isNotEmpty &&
         grandfatherName.isNotEmpty &&
@@ -55,27 +53,25 @@ class RelativeFinder {
         name: fatherName,
         father: grandfatherName,
         family: family,
-        grandfather: '',
       );
       if (father != null) {
         addMatch(RelativeType.father, father);
       }
     }
 
-    // Follow the identified father record to resolve the grandfather.
     Map<String, Object?>? grandfather;
     if (father != null) {
-      final father'sFather = _value(father, 'الاب');
-      final father'sGrandfather = _value(father, 'الجد');
-      final father'sFamily = _value(father, 'العائلة');
+      final fatherFather = _value(father, 'الاب');
+      final fatherGrandfather = _value(father, 'الجد');
+      final fatherFamily = _value(father, 'العائلة');
 
-      if (father'sGrandfather.isNotEmpty &&
-          father'sFather.isNotEmpty &&
-          father'sFamily.isNotEmpty) {
+      if (fatherGrandfather.isNotEmpty &&
+          fatherFather.isNotEmpty &&
+          fatherFamily.isNotEmpty) {
         grandfather = await _findUniquePerson(
-          name: father'sGrandfather,
-          father: father'sFather,
-          family: father'sFamily,
+          name: fatherGrandfather,
+          father: fatherFather,
+          family: fatherFamily,
         );
         if (grandfather != null) {
           addMatch(RelativeType.grandfather, grandfather);
@@ -83,8 +79,6 @@ class RelativeFinder {
       }
     }
 
-    // Siblings are accepted only after the current person's father has been
-    // uniquely identified. The father itself is excluded from this group.
     if (father != null &&
         fatherName.isNotEmpty &&
         grandfatherName.isNotEmpty &&
@@ -112,8 +106,6 @@ class RelativeFinder {
       }
     }
 
-    // Children are accepted only when the current person itself is uniquely
-    // identified by the same genealogical fields stored for its father.
     final currentPerson = name.isNotEmpty &&
             fatherName.isNotEmpty &&
             grandfatherName.isNotEmpty &&
