@@ -23,6 +23,10 @@ class _SearchPageState extends State<SearchPage> {
   final grandfatherController=TextEditingController(); final familyController=TextEditingController();
   final identityController=TextEditingController(); final motherController=TextEditingController();
   final birthDateController=TextEditingController();
+  final districtController=TextEditingController();
+  final neighborhoodController=TextEditingController();
+  final birthplaceController=TextEditingController();
+  final workplaceController=TextEditingController();
   final cloudEngine=CloudSearchEngine();
   _SearchSource source=_SearchSource.local;
   bool busy=false, loadingFilters=true; String? error, filterError;
@@ -30,8 +34,8 @@ class _SearchPageState extends State<SearchPage> {
   List<_LookupOption> provinces=[], areas=[]; List<_ValueOption> genders=[], maritalStatuses=[], districts=[], neighborhoods=[], birthplaces=[], workplaces=[];
   List<Map<String,Object?>> rows=[]; List<CloudPerson> cloudRows=[]; bool cloudHasMore=false; int cloudOffset=0;
 
-  @override void initState(){super.initState(); _loadFilters();}
-  @override void dispose(){nameController.dispose(); fatherController.dispose(); grandfatherController.dispose(); familyController.dispose(); identityController.dispose(); motherController.dispose(); birthDateController.dispose(); cloudEngine.close(); super.dispose();}
+  @override void initState(){super.initState(); WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _loadFilters(); });}
+  @override void dispose(){nameController.dispose(); fatherController.dispose(); grandfatherController.dispose(); familyController.dispose(); identityController.dispose(); motherController.dispose(); birthDateController.dispose(); districtController.dispose(); neighborhoodController.dispose(); birthplaceController.dispose(); workplaceController.dispose(); cloudEngine.close(); super.dispose();}
 
   Future<List<_ValueOption>> _loadValues(dynamic db,String table,String column) async {
     final result=await db.rawQuery('SELECT DISTINCT "$column" AS value FROM "$table" WHERE "$column" IS NOT NULL AND TRIM(CAST("$column" AS TEXT)) <> "" ORDER BY "$column"');
@@ -43,17 +47,28 @@ class _SearchPageState extends State<SearchPage> {
       final db=await DatabaseManager().open();
       final provinceRows=await db.rawQuery('SELECT "رقم المحافظة" AS code, "اسم المحافظة" AS name FROM "المحافظات" ORDER BY "اسم المحافظة"');
       final areaRows=await db.rawQuery('SELECT "رمز المنطقة" AS code, "اسم النطقة" AS name FROM "المناطق" ORDER BY "اسم النطقة"');
+
       final loadedProvinces=provinceRows.map((row)=>_LookupOption(code:row['code']?.toString()??'',name:row['name']?.toString()??'')).where((o)=>o.code.isNotEmpty).toList();
       final loadedAreas=areaRows.map((row)=>_LookupOption(code:row['code']?.toString()??'',name:row['name']?.toString()??'')).where((o)=>o.code.isNotEmpty).toList();
+
       final loadedGenders=await _loadValues(db,'قائمة_الموظفين','الجنس');
       final loadedMaritalStatuses=await _loadValues(db,'قائمة_الموظفين','الحالة الجتماعية');
-      final loadedDistricts=await _loadValues(db,'Sgaza','الناحية'); final loadedNeighborhoods=await _loadValues(db,'Sgaza','الحي');
-      final loadedBirthplaces=await _loadValues(db,'Sgaza','مكان الميلاد'); final loadedWorkplaces=await _loadValues(db,'قائمة_الموظفين','مكان العمل');
-      if(!mounted)return; setState(() {provinces=loadedProvinces;areas=loadedAreas;genders=loadedGenders;maritalStatuses=loadedMaritalStatuses;districts=loadedDistricts;neighborhoods=loadedNeighborhoods;birthplaces=loadedBirthplaces;workplaces=loadedWorkplaces;loadingFilters=false;filterError=null;});
-    } catch(e){if(mounted)setState(() {loadingFilters=false;filterError='تعذر تحميل الفلاتر من قاعدة البيانات: $e';});}
+
+      if(!mounted)return;
+      setState(() {
+        provinces=loadedProvinces;
+        areas=loadedAreas;
+        genders=loadedGenders;
+        maritalStatuses=loadedMaritalStatuses;
+        loadingFilters=false;
+        filterError=null;
+      });
+    } catch(e){
+      if(mounted)setState(() {loadingFilters=false;filterError='تعذر تحميل الفلاتر من قاعدة البيانات: $e';});
+    }
   }
 
-  SearchQuery _query()=>SearchQuery(name:nameController.text,father:fatherController.text,grandfather:grandfatherController.text,family:familyController.text,identity:identityController.text,mother:motherController.text,birthDate:birthDateController.text,provinceCode:selectedProvinceCode,areaCode:selectedAreaCode,gender:selectedGender,maritalStatus:selectedMaritalStatus,district:selectedDistrict,neighborhood:selectedNeighborhood,birthplace:selectedBirthplace,workplace:selectedWorkplace);
+  SearchQuery _query()=>SearchQuery(name:nameController.text,father:fatherController.text,grandfather:grandfatherController.text,family:familyController.text,identity:identityController.text,mother:motherController.text,birthDate:birthDateController.text,provinceCode:selectedProvinceCode,areaCode:selectedAreaCode,gender  SearchQuery _query()=>SearchQuery(name:nameController.text,father:fatherController.text,grandfather:grandfatherController.text,family:familyController.text,identity:identityController.text,mother:motherController.text,birthDate:birthDateController.text,provinceCode:selectedProvinceCode,areaCode:selectedAreaCode,gender:selectedGender,maritalStatus:selectedMaritalStatus,district:districtController.text,neighborhood:neighborhoodController.text,birthplace:birthplaceController.text,workplace:workplaceController.text);
 
   Future<void> search() async {
     final query=_query(); if(query.isEmpty)return;
@@ -82,7 +97,30 @@ class _SearchPageState extends State<SearchPage> {
   Widget _dropdown(String label,String? value,List<_LookupOption> options,ValueChanged<String?> onChanged)=>Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(initialValue:value,isExpanded:true,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),items:options.map((o)=>DropdownMenuItem<String>(value:o.code,child:Text(o.name))).toList(),onChanged:loadingFilters?null:onChanged));
   Widget _valueDropdown(String label,String? value,List<_ValueOption> options,ValueChanged<String?> onChanged)=>Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(initialValue:value,isExpanded:true,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),items:options.map((o)=>DropdownMenuItem<String>(value:o.value,child:Text(o.value))).toList(),onChanged:loadingFilters?null:onChanged));
 
-  void _clearFilters(){setState(() {selectedProvinceCode=null;selectedAreaCode=null;selectedGender=null;selectedMaritalStatus=null;selectedDistrict=null;selectedNeighborhood=null;selectedBirthplace=null;selectedWorkplace=null;});}
+  void _clearFilters(){
+    setState(() {
+      nameController.clear();
+      fatherController.clear();
+      grandfatherController.clear();
+      familyController.clear();
+      identityController.clear();
+      motherController.clear();
+      birthDateController.clear();
+      districtController.clear();
+      neighborhoodController.clear();
+      birthplaceController.clear();
+      workplaceController.clear();
+      selectedProvinceCode=null;
+      selectedAreaCode=null;
+      selectedGender=null;
+      selectedMaritalStatus=null;
+      rows=[];
+      cloudRows=[];
+      cloudHasMore=false;
+      cloudOffset=0;
+      error=null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,30 +197,10 @@ class _SearchPageState extends State<SearchPage> {
                         maritalStatuses,
                         (v) => setState(() => selectedMaritalStatus = v),
                       ),
-                      _valueDropdown(
-                        'الناحية',
-                        selectedDistrict,
-                        districts,
-                        (v) => setState(() => selectedDistrict = v),
-                      ),
-                      _valueDropdown(
-                        'الحي',
-                        selectedNeighborhood,
-                        neighborhoods,
-                        (v) => setState(() => selectedNeighborhood = v),
-                      ),
-                      _valueDropdown(
-                        'مكان الميلاد',
-                        selectedBirthplace,
-                        birthplaces,
-                        (v) => setState(() => selectedBirthplace = v),
-                      ),
-                      _valueDropdown(
-                        'مكان العمل',
-                        selectedWorkplace,
-                        workplaces,
-                        (v) => setState(() => selectedWorkplace = v),
-                      ),
+                      _field(districtController,'الناحية'),
+                      _field(neighborhoodController,'الحي'),
+                      _field(birthplaceController,'مكان الميلاد'),
+                      _field(workplaceController,'مكان العمل'),
                       if (filterError != null)
                         Align(
                           alignment: AlignmentDirectional.centerStart,
