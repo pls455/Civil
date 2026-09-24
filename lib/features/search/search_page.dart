@@ -83,7 +83,6 @@ class _SearchPageState extends State<SearchPage> {
   Widget _valueDropdown(String label,String? value,List<_ValueOption> options,ValueChanged<String?> onChanged)=>Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(initialValue:value,isExpanded:true,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),items:options.map((o)=>DropdownMenuItem<String>(value:o.value,child:Text(o.value))).toList(),onChanged:loadingFilters?null:onChanged));
 
   void _clearFilters(){setState(() {selectedProvinceCode=null;selectedAreaCode=null;selectedGender=null;selectedMaritalStatus=null;selectedDistrict=null;selectedNeighborhood=null;selectedBirthplace=null;selectedWorkplace=null;});}
-  void _clearResults(){setState(() {rows=[];cloudRows=[];cloudHasMore=false;cloudOffset=0;error=null;});}
 
   @override Widget build(BuildContext context){
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('البحث')),body:Padding(padding:const EdgeInsets.all(16),child:Column(children:[
@@ -99,7 +98,7 @@ class _SearchPageState extends State<SearchPage> {
       const SizedBox(height:12),if(busy||loadingFilters)const LinearProgressIndicator(),
       if(error!=null)Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error)),const SizedBox(height:8),
       Expanded(child:source==_SearchSource.local?_buildLocalResults(context):_buildCloudResults(context)),
-    ])));
+    ]),);
   }
 
   Widget _buildLocalResults(BuildContext context)=>rows.isEmpty?const Center(child:Text('لا توجد نتائج.')):ListView.separated(itemCount:rows.length,separatorBuilder:(_,_)=>const Divider(),itemBuilder:(context,index){final row=rows[index];return ListTile(title:Text('${row['الاسم']??''} ${row['الاب']??''} ${row['العائلة']??''}'),subtitle:Text('الهوية: ${row['الهوية']??''}\nمكان الميلاد: ${row['مكان الميلاد']??''}'),isThreeLine:true,trailing:const Icon(Icons.chevron_left),onTap:()async{final db=await DatabaseManager().open();if(!context.mounted)return;await Navigator.push(context,MaterialPageRoute(builder:(_)=>PersonDetailsPage(db:db,person:row)));},);});
