@@ -83,7 +83,7 @@ class CloudSearchEngine {
       final request = await _client.getUrl(uri).timeout(const Duration(seconds: 15));
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       if (CloudApiConfig.token.isNotEmpty) {
-        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer ' + CloudApiConfig.token);
+        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer ${CloudApiConfig.token}');
       }
       final response = await request.close().timeout(const Duration(seconds: 15));
       final body = await response.transform(utf8.decoder).join();
