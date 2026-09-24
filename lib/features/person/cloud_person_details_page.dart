@@ -312,6 +312,8 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
         return 'الأب';
       case CloudRelativeType.mother:
         return 'الأم';
+      case CloudRelativeType.siblings:
+        return 'الإخوة';
       case CloudRelativeType.children:
         return 'الأبناء';
       case CloudRelativeType.grandparents:
