@@ -312,18 +312,10 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
         return 'الأب';
       case CloudRelativeType.mother:
         return 'الأم';
-      case CloudRelativeType.grandparents:
-        return 'الأجداد';
-      case CloudRelativeType.siblings:
-        return 'الإخوة';
-      case CloudRelativeType.paternalUncles:
-        return 'الأعمام';
-      case CloudRelativeType.maternalUncles:
-        return 'الخوال';
       case CloudRelativeType.children:
         return 'الأبناء';
-      case CloudRelativeType.grandchildren:
-        return 'الأحفاد';
+      case CloudRelativeType.grandparents:
+        return 'الأجداد';
     }
   }
 }
