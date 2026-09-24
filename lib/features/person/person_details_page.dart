@@ -371,8 +371,6 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
         return 'الأبناء';
       case RelativeType.siblings:
         return 'الإخوة';
-      case RelativeType.extendedFamily:
-        return 'أفراد من العائلة الممتدة';
     }
   }
 
