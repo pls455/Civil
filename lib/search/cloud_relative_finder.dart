@@ -216,7 +216,10 @@ class CloudRelativeFinder {
 
     if (mother != null) add(CloudRelativeType.mother, mother);
 
-    if (father != null) {
+    if (person.father.isNotEmpty &&
+        person.grandfather.isNotEmpty &&
+        person.family.isNotEmpty &&
+        person.mother.isNotEmpty) {
       final siblings = await searchAllExact(
         father: person.father,
         grandfather: person.grandfather,
@@ -225,7 +228,6 @@ class CloudRelativeFinder {
       );
 
       for (final sibling in siblings) {
-        if (sibling.id == father.id) continue;
         add(CloudRelativeType.siblings, sibling);
       }
     }
