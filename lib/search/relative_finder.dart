@@ -86,14 +86,12 @@ class RelativeFinder {
       final rows = await db.rawQuery(
         'SELECT * FROM "Sgaza" '
         'WHERE "الهوية" != ? '
-        'AND "الهوية" != ? '
         'AND "الاب" = ? '
         'AND "الجد" = ? '
         'AND "العائلة" = ? '
         'AND "اسم الام" = ?',
         [
           identity,
-          _value(father, 'الهوية'),
           fatherName,
           grandfatherName,
           family,
