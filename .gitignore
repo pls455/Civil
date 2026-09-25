@@ -1,0 +1,22 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub/
+build/
+coverage/
+*.iml
+.idea/
+.vscode/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+android/.gradle/
+android/local.properties
+android/key.properties
+*.mdb
+*.accdb
+*.sqlite
+*.db
+*.json
+!test/fixtures/*.json
+!docs/*.json

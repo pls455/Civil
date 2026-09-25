@@ -1,0 +1,43 @@
+name: Flutter CI
+on:
+  push:
+    branches: [main, phase0-foundation]
+  pull_request:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: chmod +x android/gradlew
+      - name: Build Android APK
+        shell: bash
+        run: |
+          set +e
+          cd android
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon 2>&1 | tee /tmp/gradle-build.log
+          status=${PIPESTATUS[0]}
+          cd ..
+          echo '--- APK candidates ---'
+          find . -type f -name '*.apk' -print || true
+          echo '--- Gradle failure excerpts ---'
+          grep -E -i 'FAILURE:|What went wrong:|Execution failed|Caused by:|error:' /tmp/gradle-build.log | tail -n 120 || true
+          exit "$status"
+      - name: Verify APK output
+        shell: bash
+        run: |
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: civil-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
