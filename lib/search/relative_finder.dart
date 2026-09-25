@@ -79,10 +79,10 @@ class RelativeFinder {
       }
     }
 
-    if (father != null &&
-        fatherName.isNotEmpty &&
+    if (fatherName.isNotEmpty &&
         grandfatherName.isNotEmpty &&
-        family.isNotEmpty) {
+        family.isNotEmpty &&
+        motherName.isNotEmpty) {
       final rows = await db.rawQuery(
         'SELECT * FROM "Sgaza" '
         'WHERE "الهوية" != ? '
