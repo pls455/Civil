@@ -152,23 +152,21 @@ class CloudRelativeFinder {
     if (father != null) add(CloudRelativeType.father, father);
 
     // Mother:
-    // The mother's name + family can match many records. Therefore we do not
-    // require that pair to be unique. Each matching mother candidate is
-    // verified against the current child. The child must match by its complete
-    // four-part name, mother name, and mother's family, and its id must be the
-    // current person's id. The mother relation is accepted only if exactly one
-    // mother candidate survives that verification.
+    // The mother's record is searched by her name + the husband's family
+    // (the child's family), not by m_family. If several candidates remain,
+    // verify the exact child and use the mother's own family from the child's
+    // m_family as the final discriminator when the candidate exposes it as
+    // old_family.
     CloudPerson? mother;
     if (person.mother.isNotEmpty &&
-        person.motherFamily.isNotEmpty &&
+        person.family.isNotEmpty &&
         person.id.isNotEmpty &&
         person.name.isNotEmpty &&
         person.father.isNotEmpty &&
-        person.grandfather.isNotEmpty &&
-        person.family.isNotEmpty) {
+        person.grandfather.isNotEmpty) {
       final motherMatches = await searchAllExact(
         name: person.mother,
-        family: person.motherFamily,
+        family: person.family,
       );
 
       final verifiedMothers = <String, CloudPerson>{};
@@ -194,8 +192,7 @@ class CloudRelativeFinder {
               child.father.trim() == person.father.trim() &&
               child.grandfather.trim() == person.grandfather.trim() &&
               child.family.trim() == person.family.trim() &&
-              child.mother.trim() == motherCandidate.name.trim() &&
-              child.motherFamily.trim() == motherCandidate.family.trim();
+              child.mother.trim() == motherCandidate.name.trim();
 
           if (childMatchesCurrentPerson) {
             verifiedMothers[motherCandidate.id] = motherCandidate;
@@ -205,6 +202,15 @@ class CloudRelativeFinder {
 
       if (verifiedMothers.length == 1) {
         mother = verifiedMothers.values.first;
+      } else if (verifiedMothers.length > 1 &&
+          person.motherFamily.isNotEmpty) {
+        final byMotherFamily = verifiedMothers.values.where((candidate) {
+          return candidate.oldFamily.trim() == person.motherFamily.trim();
+        }).toList();
+
+        if (byMotherFamily.length == 1) {
+          mother = byMotherFamily.first;
+        }
       }
     }
 
