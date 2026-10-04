@@ -71,7 +71,7 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
         _relatives = _toCandidates(cached);
         _loadingRelatives = false;
         _relativeError = cached.isEmpty
-            ? 'تعذر تحديث أقارب الشخص من السحابة: ' + e.toString()
+            ? 'تعذر تحديث أقارب الشخص من السحابة: $e'
             : null;
       });
     }
@@ -161,7 +161,7 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
                   if (widget.person.id.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'الهوية: ' + widget.person.id,
+                      'الهوية: ${widget.person.id}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -283,7 +283,7 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
               subtitle: Text(
                 relative.person.id.isEmpty
                     ? 'لا توجد هوية معروضة'
-                    : 'الهوية: ' + relative.person.id,
+                    : 'الهوية: ${relative.person.id}',
               ),
               trailing: const Icon(Icons.chevron_left),
               onTap: () => Navigator.push(
