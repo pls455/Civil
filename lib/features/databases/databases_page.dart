@@ -42,7 +42,7 @@ class _DatabasesPageState extends State<DatabasesPage> {
       if (!mounted) return;
       setState(() {
         loadingInfo = false;
-        status = 'تعذر قراءة حالة قواعد البيانات: ' + e.toString();
+        status = 'تعذر قراءة حالة قواعد البيانات: $e';
       });
     }
   }
@@ -79,7 +79,7 @@ class _DatabasesPageState extends State<DatabasesPage> {
       if (!mounted) return;
       setState(() => status = 'تم اعتماد قاعدة SQLite بنجاح.');
     } catch (e) {
-      if (mounted) setState(() => status = 'فشل استيراد SQLite: ' + e.toString());
+      if (mounted) setState(() => status = 'فشل استيراد SQLite: $e');
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -121,7 +121,7 @@ class _DatabasesPageState extends State<DatabasesPage> {
       setState(() => status = 'تم مسح قاعدة السحابة المحلية.');
     } catch (e) {
       if (mounted) {
-        setState(() => status = 'فشل مسح قاعدة السحابة المحلية: ' + e.toString());
+        setState(() => status = 'فشل مسح قاعدة السحابة المحلية: $e');
       }
     } finally {
       if (mounted) setState(() => busy = false);
@@ -129,14 +129,14 @@ class _DatabasesPageState extends State<DatabasesPage> {
   }
 
   String _size(int bytes) {
-    if (bytes < 1024) return bytes.toString() + ' B';
+    if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) {
-      return (bytes / 1024).toStringAsFixed(1) + ' KB';
+      return `${(bytes / 1024).toStringAsFixed(1)} KB`;
     }
     if (bytes < 1024 * 1024 * 1024) {
-      return (bytes / (1024 * 1024)).toStringAsFixed(1) + ' MB';
+      return `${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB`;
     }
-    return (bytes / (1024 * 1024 * 1024)).toStringAsFixed(2) + ' GB';
+    return `${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB`;
   }
 
   @override
@@ -206,11 +206,11 @@ class _DatabasesPageState extends State<DatabasesPage> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 10),
-            Text('الحجم: ' + _size(info.sizeBytes)),
-            Text('عدد الجداول: ' + info.tableCount.toString()),
+            Text('الحجم: ${_size(info.sizeBytes)}'),
+            Text('عدد الجداول: ${info.tableCount}'),
             if (info.tables.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('الجداول: ' + info.tables.join('، ')),
+              Text('الجداول: ${info.tables.join('، ')}'),
             ],
           ],
         ),
@@ -243,9 +243,9 @@ class _DatabasesPageState extends State<DatabasesPage> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 10),
-            Text('الأشخاص المحفوظون: ' + info.peopleCount.toString()),
-            Text('العلاقات المحفوظة: ' + info.relationshipCount.toString()),
-            Text('حجم القاعدة: ' + _size(info.sizeBytes)),
+            Text('الأشخاص المحفوظون: ${info.peopleCount}'),
+            Text('العلاقات المحفوظة: ${info.relationshipCount}'),
+            Text('حجم القاعدة: ${_size(info.sizeBytes)}'),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: busy ? null : _clearCloudCache,
