@@ -149,9 +149,7 @@ class CloudSearchEngine {
         throw HttpException(
           message?.isNotEmpty == true
               ? message!
-              : 'فشل البحث السحابي (' +
-                  response.statusCode.toString() +
-                  ').',
+              : 'فشل البحث السحابي (${response.statusCode}).',
           uri: uri,
         );
       }
