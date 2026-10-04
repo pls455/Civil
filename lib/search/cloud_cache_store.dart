@@ -191,7 +191,7 @@ class CloudCacheStore {
       final trimmed = value.trim();
       if (trimmed.isEmpty) return;
       conditions.add('"$column" LIKE ?');
-      arguments.add('%' + trimmed + '%');
+      arguments.add('%$trimmed%');
     }
 
     addText('id', query.identity);
