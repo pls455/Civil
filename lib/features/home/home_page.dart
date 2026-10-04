@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../databases/databases_page.dart';
 import '../search/search_page.dart';
+import '../settings/ai_settings_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -51,6 +52,15 @@ class HomePage extends StatelessWidget {
               ),
               icon: const Icon(Icons.storage),
               label: const Text('إدارة قواعد البيانات'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AiSettingsPage()),
+              ),
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('إعدادات الذكاء الاصطناعي'),
             ),
             const SizedBox(height: 40),
             const Center(
