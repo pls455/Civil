@@ -8,7 +8,6 @@ import '../../database/database_manager.dart';
 import '../../search/cloud_cache_store.dart';
 import '../../search/cloud_graph_cache_service.dart';
 import '../../search/cloud_hybrid_search_engine.dart';
-import '../../search/cloud_relative_finder.dart';
 import '../../search/cloud_search_engine.dart';
 import '../../search/relative_finder.dart';
 import '../../search/search_engine.dart';
@@ -491,7 +490,12 @@ class _SearchPageState extends State<SearchPage> {
     }
 
     final target = targetMatches.first;
-    switch (intent.relation) {
+    final relation = intent.relation;
+    if (relation == null) {
+      throw const FormatException('لم يتم تحديد نوع القرابة.');
+    }
+
+    switch (relation) {
       case AiRelationType.siblings:
         final relatives = await RelativeFinder(db).findForPerson(target);
         final wanted = relatives
