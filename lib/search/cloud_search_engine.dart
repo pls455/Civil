@@ -131,7 +131,7 @@ class CloudSearchEngine {
       if (CloudApiConfig.token.isNotEmpty) {
         request.headers.set(
           HttpHeaders.authorizationHeader,
-          'Bearer ' + CloudApiConfig.token,
+          'Bearer ${CloudApiConfig.token}',
         );
       }
 
@@ -184,7 +184,7 @@ class CloudSearchEngine {
     } on FormatException {
       rethrow;
     } catch (e) {
-      throw Exception('تعذر تنفيذ البحث السحابي: ' + e.toString());
+      throw Exception('تعذر تنفيذ البحث السحابي: $e');
     }
   }
 
