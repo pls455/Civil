@@ -13,6 +13,11 @@ void main() {
 
     expect(find.byType(SearchPage), findsOneWidget);
     expect(find.text('الاسم'), findsOneWidget);
+
+    final scrollable = find.byType(Scrollable).first;
+    await tester.drag(scrollable, const Offset(0, -900));
+    await tester.pump();
+
     expect(find.text('تحميل خيارات الفلاتر'), findsOneWidget);
   });
 
