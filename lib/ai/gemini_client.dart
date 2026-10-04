@@ -120,9 +120,7 @@ class GeminiClient {
       throw GeminiApiException(
         message?.isNotEmpty == true
             ? message!
-            : 'فشل اتصال Gemini (HTTP ' +
-                response.statusCode.toString() +
-                ').',
+            : 'فشل اتصال Gemini (HTTP ${response.statusCode}).',
         statusCode: response.statusCode,
       );
     }
