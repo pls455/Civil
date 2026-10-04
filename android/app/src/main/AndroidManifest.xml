@@ -4,7 +4,8 @@
         android:label="سجل المواطنين"
         android:name="${applicationName}"
         android:icon="@android:drawable/sym_def_app_icon"
-        android:usesCleartextTraffic="false">
+        android:usesCleartextTraffic="false"
+        android:allowBackup="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
