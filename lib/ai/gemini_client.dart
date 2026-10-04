@@ -14,7 +14,7 @@ class GeminiApiException implements Exception {
 class GeminiClient {
   static const model = 'gemini-3.8-flash';
   static const endpoint =
-      'https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent';
+      'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent';
 
   final HttpClient _client;
 
