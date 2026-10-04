@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../search/cloud_cache_store.dart';
+import '../../search/cloud_graph_cache_service.dart';
 import '../../search/cloud_relative_finder.dart';
 import '../../search/cloud_search_engine.dart';
 
@@ -17,6 +19,7 @@ class CloudPersonDetailsPage extends StatefulWidget {
 
 class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
   final CloudSearchEngine _engine = CloudSearchEngine();
+  final CloudCacheStore _cache = CloudCacheStore();
 
   bool _loadingRelatives = true;
   String? _relativeError;
@@ -36,21 +39,68 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
 
   Future<void> _loadRelatives() async {
     try {
-      final relatives =
-          await CloudRelativeFinder(_engine).findForPerson(widget.person);
+      final cached = await _cache.relationshipsForPerson(widget.person.id);
+      if (cached.isNotEmpty && mounted) {
+        setState(() {
+          _relatives = _toCandidates(cached);
+          _loadingRelatives = true;
+          _relativeError = null;
+        });
+      }
+
+      await CloudGraphCacheService(
+        engine: _engine,
+        cache: _cache,
+      ).discover(widget.person);
+
+      final refreshed = await _cache.relationshipsForPerson(
+        widget.person.id,
+      );
+
       if (!mounted) return;
       setState(() {
-        _relatives = relatives;
+        _relatives = _toCandidates(refreshed);
         _loadingRelatives = false;
         _relativeError = null;
       });
     } catch (e) {
+      final cached = await _cache.relationshipsForPerson(widget.person.id);
       if (!mounted) return;
+
       setState(() {
+        _relatives = _toCandidates(cached);
         _loadingRelatives = false;
-        _relativeError = 'تعذر تحميل الأقارب من الخادم: $e';
+        _relativeError = cached.isEmpty
+            ? 'تعذر تحديث أقارب الشخص من السحابة: ' + e.toString()
+            : null;
       });
     }
+  }
+
+  List<CloudRelativeCandidate> _toCandidates(
+    List<CloudCachedRelationship> relationships,
+  ) {
+    final output = <CloudRelativeCandidate>[];
+
+    for (final item in relationships) {
+      CloudRelativeType? type;
+      for (final value in CloudRelativeType.values) {
+        if (value.name == item.relationType) {
+          type = value;
+          break;
+        }
+      }
+      if (type == null) continue;
+
+      output.add(
+        CloudRelativeCandidate(
+          type: type,
+          person: item.person,
+        ),
+      );
+    }
+
+    return output;
   }
 
   @override
@@ -111,7 +161,7 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
                   if (widget.person.id.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'الهوية: ${widget.person.id}',
+                      'الهوية: ' + widget.person.id,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -171,75 +221,81 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
           child: Center(child: CircularProgressIndicator()),
         ),
       );
-    } else if (_relativeError != null) {
+    }
+
+    if (_relativeError != null) {
       children.add(
         Text(
           _relativeError!,
           style: TextStyle(color: Theme.of(context).colorScheme.error),
         ),
       );
-    } else if (_relatives.isEmpty) {
+    }
+
+    if (!_loadingRelatives &&
+        _relativeError == null &&
+        _relatives.isEmpty) {
       children.add(
         const Text(
-          'لم يتم العثور على روابط عائلية مؤكدة من بيانات البحث السحابي.',
+          'لم يتم العثور على روابط عائلية مؤكدة من بيانات السحابة المحفوظة.',
         ),
       );
-    } else {
-      for (final type in CloudRelativeType.values) {
-        final items = groups[type];
-        if (items == null || items.isEmpty) continue;
+    }
 
-        children.add(
-          Padding(
-            padding: const EdgeInsets.only(top: 6, bottom: 6),
-            child: Text(
-              _relativeTitle(type),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
+    for (final type in CloudRelativeType.values) {
+      final items = groups[type];
+      if (items == null || items.isEmpty) continue;
+
+      children.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 6, bottom: 6),
+          child: Text(
+            _relativeTitle(type),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
           ),
-        );
+        ),
+      );
 
-        for (final relative in items) {
-          children.add(
-            Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 4,
+      for (final relative in items) {
+        children.add(
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 4,
+              ),
+              leading: CircleAvatar(
+                backgroundColor:
+                    Theme.of(context).colorScheme.secondaryContainer,
+                child: Icon(
+                  Icons.person_outline,
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
                 ),
-                leading: CircleAvatar(
-                  backgroundColor:
-                      Theme.of(context).colorScheme.secondaryContainer,
-                  child: Icon(
-                    Icons.person_outline,
-                    color: Theme.of(context).colorScheme.onSecondaryContainer,
-                  ),
-                ),
-                title: Text(
-                  relative.person.displayName.isEmpty
-                      ? 'بدون اسم'
-                      : relative.person.displayName,
-                ),
-                subtitle: Text(
-                  relative.person.id.isEmpty
-                      ? 'لا توجد هوية معروضة'
-                      : 'الهوية: ${relative.person.id}',
-                ),
-                trailing: const Icon(Icons.chevron_left),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        CloudPersonDetailsPage(person: relative.person),
-                  ),
+              ),
+              title: Text(
+                relative.person.displayName.isEmpty
+                    ? 'بدون اسم'
+                    : relative.person.displayName,
+              ),
+              subtitle: Text(
+                relative.person.id.isEmpty
+                    ? 'لا توجد هوية معروضة'
+                    : 'الهوية: ' + relative.person.id,
+              ),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      CloudPersonDetailsPage(person: relative.person),
                 ),
               ),
             ),
-          );
-        }
+          ),
+        );
       }
     }
 

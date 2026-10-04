@@ -4,14 +4,32 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
+class InstalledDatabaseStats {
+  final bool exists;
+  final int sizeBytes;
+  final int tableCount;
+  final List<String> tables;
+
+  const InstalledDatabaseStats({
+    required this.exists,
+    required this.sizeBytes,
+    required this.tableCount,
+    required this.tables,
+  });
+}
+
 class DatabaseManager {
   Database? _db;
+
+  Future<String> databasePath() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return p.join(dir.path, 'citizen_registry.sqlite');
+  }
 
   Future<Database> open() async {
     if (_db != null) return _db!;
 
-    final dir = await getApplicationDocumentsDirectory();
-    final path = p.join(dir.path, 'citizen_registry.sqlite');
+    final path = await databasePath();
     _db = await openDatabase(
       path,
       version: 1,
@@ -30,8 +48,41 @@ class DatabaseManager {
     _db = null;
   }
 
-  /// Replaces the production DB only after the staged SQLite file passes
-  /// an integrity check. The source MDB is not involved in this operation.
+  Future<InstalledDatabaseStats> stats() async {
+    final path = await databasePath();
+    final file = File(path);
+    if (!await file.exists()) {
+      return const InstalledDatabaseStats(
+        exists: false,
+        sizeBytes: 0,
+        tableCount: 0,
+        tables: [],
+      );
+    }
+
+    final db = await openDatabase(path, readOnly: true);
+    try {
+      final rows = await db.rawQuery(
+        "SELECT name FROM sqlite_master "
+        "WHERE type='table' AND name NOT LIKE 'sqlite_%' "
+        "ORDER BY name",
+      );
+      final tables = rows
+          .map((row) => row['name']?.toString() ?? '')
+          .where((name) => name.isNotEmpty)
+          .toList();
+
+      return InstalledDatabaseStats(
+        exists: true,
+        sizeBytes: await file.length(),
+        tableCount: tables.length,
+        tables: tables,
+      );
+    } finally {
+      await db.close();
+    }
+  }
+
   Future<void> replaceWith(File stagedDb) async {
     if (!await stagedDb.exists()) {
       throw ArgumentError('Staged database does not exist');
@@ -65,7 +116,10 @@ class DatabaseManager {
     }
     await stagedDb.copy(stagedInTarget);
 
-    final stagedCheck = await openDatabase(stagedInTarget, readOnly: true);
+    final stagedCheck = await openDatabase(
+      stagedInTarget,
+      readOnly: true,
+    );
     try {
       final result = await stagedCheck.rawQuery('PRAGMA integrity_check');
       final value = result.isEmpty ? null : result.first.values.first;

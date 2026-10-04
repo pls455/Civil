@@ -23,6 +23,42 @@ class GeminiClient {
   Future<String> generateText({
     required String apiKey,
     required String prompt,
+  }) {
+    return _request(apiKey: apiKey, prompt: prompt);
+  }
+
+  Future<Map<String, dynamic>> generateJson({
+    required String apiKey,
+    required String prompt,
+    required Map<String, dynamic> schema,
+  }) async {
+    final raw = await _request(
+      apiKey: apiKey,
+      prompt: prompt,
+      generationConfig: {
+        'responseMimeType': 'application/json',
+        'responseSchema': schema,
+      },
+    );
+
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } on FormatException {
+      throw const GeminiApiException('Gemini أعاد JSON غير صالح.');
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      throw const GeminiApiException('Gemini أعاد JSON بصيغة غير متوقعة.');
+    }
+
+    return decoded;
+  }
+
+  Future<String> _request({
+    required String apiKey,
+    required String prompt,
+    Map<String, dynamic>? generationConfig,
   }) async {
     final key = apiKey.trim();
     final requestPrompt = prompt.trim();
@@ -42,28 +78,31 @@ class GeminiClient {
     request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
     request.headers.set('x-goog-api-key', key);
 
-    request.add(
-      utf8.encode(
-        jsonEncode({
-          'contents': [
-            {
-              'role': 'user',
-              'parts': [
-                {'text': requestPrompt},
-              ],
-            },
+    final body = <String, dynamic>{
+      'contents': [
+        {
+          'role': 'user',
+          'parts': [
+            {'text': requestPrompt},
           ],
-        }),
-      ),
-    );
+        },
+      ],
+    };
+
+    if (generationConfig != null) {
+      body['generationConfig'] = generationConfig;
+    }
+
+    request.add(utf8.encode(jsonEncode(body)));
 
     final response =
         await request.close().timeout(const Duration(seconds: 30));
-    final body = await response.transform(utf8.decoder).join();
+    final responseBody =
+        await response.transform(utf8.decoder).join();
 
     dynamic decoded;
     try {
-      decoded = jsonDecode(body);
+      decoded = jsonDecode(responseBody);
     } on FormatException {
       throw GeminiApiException(
         'استجابة Gemini غير صالحة.',
@@ -81,7 +120,9 @@ class GeminiClient {
       throw GeminiApiException(
         message?.isNotEmpty == true
             ? message!
-            : 'فشل اتصال Gemini (HTTP ${response.statusCode}).',
+            : 'فشل اتصال Gemini (HTTP ' +
+                response.statusCode.toString() +
+                ').',
         statusCode: response.statusCode,
       );
     }

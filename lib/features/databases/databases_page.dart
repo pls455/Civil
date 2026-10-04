@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../database/database_manager.dart';
+import '../../search/cloud_cache_store.dart';
 
 class DatabasesPage extends StatefulWidget {
   const DatabasesPage({super.key});
@@ -15,7 +16,36 @@ class DatabasesPage extends StatefulWidget {
 
 class _DatabasesPageState extends State<DatabasesPage> {
   bool busy = false;
+  bool loadingInfo = true;
   String status = 'لا توجد عملية جارية';
+  InstalledDatabaseStats? _installed;
+  CloudCacheStats? _cloudCache;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInfo();
+  }
+
+  Future<void> _loadInfo() async {
+    try {
+      final installed = await DatabaseManager().stats();
+      final cloudCache = await CloudCacheStore().stats();
+
+      if (!mounted) return;
+      setState(() {
+        _installed = installed;
+        _cloudCache = cloudCache;
+        loadingInfo = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        loadingInfo = false;
+        status = 'تعذر قراءة حالة قواعد البيانات: ' + e.toString();
+      });
+    }
+  }
 
   Future<void> pickSqlite() async {
     final result = await FilePicker.platform.pickFiles(
@@ -31,7 +61,9 @@ class _DatabasesPageState extends State<DatabasesPage> {
 
     final size = await file.length();
     if (size > AppConstants.maxImportBytes) {
-      setState(() => status = 'حجم الملف يتجاوز الحد المدعوم حاليًا وهو 4 GB.');
+      setState(
+        () => status = 'حجم الملف يتجاوز الحد المدعوم حاليًا وهو 4 GB.',
+      );
       return;
     }
 
@@ -43,39 +75,186 @@ class _DatabasesPageState extends State<DatabasesPage> {
 
     try {
       await DatabaseManager().replaceWith(file);
+      await _loadInfo();
       if (!mounted) return;
       setState(() => status = 'تم اعتماد قاعدة SQLite بنجاح.');
     } catch (e) {
-      if (mounted) setState(() => status = 'فشل استيراد SQLite: $e');
+      if (mounted) setState(() => status = 'فشل استيراد SQLite: ' + e.toString());
     } finally {
       if (mounted) setState(() => busy = false);
     }
   }
 
+  Future<void> _clearCloudCache() async {
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('مسح قاعدة السحابة المحلية'),
+        content: const Text(
+          'سيتم حذف الأشخاص والعلاقات المحفوظة محلياً من السحابة. '
+          'لن تتأثر قاعدة المواطنين المستوردة.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('مسح'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldClear != true) return;
+
+    setState(() {
+      busy = true;
+      status = 'جارٍ مسح قاعدة السحابة المحلية...';
+    });
+
+    try {
+      await CloudCacheStore().clear();
+      await _loadInfo();
+      if (!mounted) return;
+      setState(() => status = 'تم مسح قاعدة السحابة المحلية.');
+    } catch (e) {
+      if (mounted) {
+        setState(() => status = 'فشل مسح قاعدة السحابة المحلية: ' + e.toString());
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  String _size(int bytes) {
+    if (bytes < 1024) return bytes.toString() + ' B';
+    if (bytes < 1024 * 1024) {
+      return (bytes / 1024).toStringAsFixed(1) + ' KB';
+    }
+    if (bytes < 1024 * 1024 * 1024) {
+      return (bytes / (1024 * 1024)).toStringAsFixed(1) + ' MB';
+    }
+    return (bytes / (1024 * 1024 * 1024)).toStringAsFixed(2) + ' GB';
+  }
+
   @override
-  Widget build(BuildContext context) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: Scaffold(
-          appBar: AppBar(title: const Text('قواعد البيانات')),
-          body: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FilledButton.icon(
-                  onPressed: busy ? null : pickSqlite,
-                  icon: const Icon(Icons.file_open),
-                  label: const Text('استيراد قاعدة SQLite'),
-                ),
-                const SizedBox(height: 16),
-                if (busy) const LinearProgressIndicator(),
-                const SizedBox(height: 12),
-                Text(status),
-                const Spacer(),
-                const Text(AppConstants.signature, textAlign: TextAlign.center),
-              ],
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('قواعد البيانات')),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            FilledButton.icon(
+              onPressed: busy ? null : pickSqlite,
+              icon: const Icon(Icons.file_open),
+              label: const Text('استيراد قاعدة SQLite'),
             ),
+            const SizedBox(height: 16),
+            if (busy) const LinearProgressIndicator(),
+            const SizedBox(height: 12),
+            Text(status),
+            const SizedBox(height: 16),
+            if (loadingInfo)
+              const Center(child: CircularProgressIndicator())
+            else ...[
+              _buildInstalledCard(context),
+              const SizedBox(height: 12),
+              _buildCloudCacheCard(context),
+            ],
+            const SizedBox(height: 24),
+            const Text(
+              'قاعدة السحابة المحلية مستقلة عن قاعدة المواطنين المستوردة. '
+              'مسحها لا يغيّر الملف المستورد.',
+            ),
+            const SizedBox(height: 16),
+            const Center(
+              child: Text(
+                AppConstants.signature,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInstalledCard(BuildContext context) {
+    final info = _installed;
+    if (info == null || !info.exists) {
+      return const Card(
+        child: ListTile(
+          leading: Icon(Icons.storage_outlined),
+          title: Text('قاعدة المواطنين'),
+          subtitle: Text('لا توجد قاعدة SQLite مستوردة حالياً.'),
+        ),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'قاعدة المواطنين',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+            Text('الحجم: ' + _size(info.sizeBytes)),
+            Text('عدد الجداول: ' + info.tableCount.toString()),
+            if (info.tables.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('الجداول: ' + info.tables.join('، ')),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCloudCacheCard(BuildContext context) {
+    final info = _cloudCache;
+    if (info == null || !info.exists) {
+      return const Card(
+        child: ListTile(
+          leading: Icon(Icons.cloud_done_outlined),
+          title: Text('السحابة المحلية'),
+          subtitle: Text(
+            'لم تُنشأ قاعدة سحابية محلية بعد. أول بحث سحابي سينشئها تلقائياً.',
           ),
         ),
       );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'السحابة المحلية',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+            Text('الأشخاص المحفوظون: ' + info.peopleCount.toString()),
+            Text('العلاقات المحفوظة: ' + info.relationshipCount.toString()),
+            Text('حجم القاعدة: ' + _size(info.sizeBytes)),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: busy ? null : _clearCloudCache,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('مسح بيانات السحابة المحلية'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
