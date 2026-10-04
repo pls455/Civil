@@ -200,7 +200,7 @@ class _SearchPageState extends State<SearchPage> {
       if (!mounted) return;
       setState(() {
         loadingFilters = false;
-        filterError = 'تعذر تحميل الفلاتر من قاعدة البيانات: ' + e.toString();
+        filterError = 'تعذر تحميل الفلاتر من قاعدة البيانات: $e';
       });
     }
   }
@@ -282,7 +282,7 @@ class _SearchPageState extends State<SearchPage> {
       await _performSearch(query);
     } catch (e) {
       if (mounted) {
-        setState(() => error = 'تعذر البحث: ' + e.toString());
+        setState(() => error = 'تعذر البحث: $e');
       }
     } finally {
       if (mounted) setState(() => busy = false);
@@ -369,7 +369,7 @@ class _SearchPageState extends State<SearchPage> {
         offset: cloudOffset,
       );
     } catch (e) {
-      if (mounted) setState(() => error = 'تعذر تحميل المزيد: ' + e.toString());
+      if (mounted) setState(() => error = 'تعذر تحميل المزيد: $e');
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -404,7 +404,7 @@ class _SearchPageState extends State<SearchPage> {
       if (mounted) {
         setState(() {
           aiStatus = null;
-          error = 'تعذر تنفيذ بحث الذكاء الاصطناعي: ' + e.toString();
+          error = 'تعذر تنفيذ بحث الذكاء الاصطناعي: $e';
         });
       }
     } finally {
@@ -1035,10 +1035,7 @@ class _SearchPageState extends State<SearchPage> {
             ].where((value) => value != null).join(' '),
           ),
           subtitle: Text(
-            'الهوية: ' +
-                (row['الهوية']?.toString() ?? '') +
-                '\nمكان الميلاد: ' +
-                (row['مكان الميلاد']?.toString() ?? ''),
+            'الهوية: ${row['الهوية']?.toString() ?? ''}\nمكان الميلاد: ${row['مكان الميلاد']?.toString() ?? ''}',
           ),
           isThreeLine: true,
           trailing: const Icon(Icons.chevron_left),
@@ -1089,10 +1086,7 @@ class _SearchPageState extends State<SearchPage> {
             person.displayName.isEmpty ? 'بدون اسم' : person.displayName,
           ),
           subtitle: Text(
-            'الهوية: ' +
-                person.id +
-                '\nتاريخ الميلاد: ' +
-                person.birth,
+            'الهوية: ${person.id}\nتاريخ الميلاد: ${person.birth}',
           ),
           isThreeLine: true,
           trailing: const Icon(Icons.chevron_left),
