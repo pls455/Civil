@@ -57,13 +57,18 @@ class RelativeFinder {
 
     Map<String, Object?>? father;
     if (fatherName.isNotEmpty &&
-        hasSupportingEvidence(fatherName, [grandfatherName, family])) {
-      father = await _findUniquePerson(
+        hasSupportingEvidence(
+          fatherName,
+          [grandfatherName, family],
+        )) {
+      father = await _findBestPerson(
         name: fatherName,
-        father: grandfatherName,
-        family: family,
+        expectedGrandfather: grandfatherName,
+        expectedFamily: family,
       );
-      if (father != null) addMatch(RelativeType.father, father);
+      if (father != null) {
+        addMatch(RelativeType.father, father);
+      }
     }
 
     if (father != null) {
@@ -76,10 +81,10 @@ class RelativeFinder {
             fatherGrandfather,
             [fatherFather, fatherFamily],
           )) {
-        final grandfather = await _findUniquePerson(
+        final grandfather = await _findBestPerson(
           name: fatherGrandfather,
-          father: fatherFather,
-          family: fatherFamily,
+          expectedGrandfather: fatherFather,
+          expectedFamily: fatherFamily,
         );
         if (grandfather != null) {
           addMatch(RelativeType.grandfather, grandfather);
@@ -87,28 +92,22 @@ class RelativeFinder {
       }
     }
 
-    if (hasSupportingEvidence(fatherName, [grandfatherName, family])) {
-      final conditions = <String>[
-        '"الهوية" != ?',
-        '"الاب" = ?',
-      ];
-      final arguments = <Object?>[identity, fatherName];
-
-      if (grandfatherName.isNotEmpty) {
-        conditions.add('"الجد" = ?');
-        arguments.add(grandfatherName);
-      }
-      if (family.isNotEmpty) {
-        conditions.add('"العائلة" = ?');
-        arguments.add(family);
-      }
-
-      final rows = await db.rawQuery(
-        'SELECT * FROM "Sgaza" WHERE ${conditions.join(' AND ')}',
-        arguments,
-      );
+    if (fatherName.isNotEmpty &&
+        hasSupportingEvidence(
+          fatherName,
+          [grandfatherName, family],
+        )) {
+      final rows = await _peopleWithFather(fatherName);
 
       for (final row in rows) {
+        final score = evidenceScore(
+          expectedGrandfather: grandfatherName,
+          candidateGrandfather: _value(row, 'الجد'),
+          expectedFamily: family,
+          candidateFamily: _value(row, 'العائلة'),
+        );
+        if (score < 1) continue;
+
         final siblingKind = classifySiblingRelation(
           personMother: motherName,
           candidateMother: _value(row, 'اسم الام'),
@@ -122,28 +121,20 @@ class RelativeFinder {
     }
 
     if (name.isNotEmpty &&
-        hasSupportingEvidence(name, [fatherName, family])) {
-      final conditions = <String>[
-        '"الهوية" != ?',
-        '"الاب" = ?',
-      ];
-      final arguments = <Object?>[identity, name];
-
-      if (fatherName.isNotEmpty) {
-        conditions.add('"الجد" = ?');
-        arguments.add(fatherName);
-      }
-      if (family.isNotEmpty) {
-        conditions.add('"العائلة" = ?');
-        arguments.add(family);
-      }
-
-      final rows = await db.rawQuery(
-        'SELECT * FROM "Sgaza" WHERE ${conditions.join(' AND ')}',
-        arguments,
-      );
+        hasSupportingEvidence(
+          name,
+          [fatherName, family],
+        )) {
+      final rows = await _peopleWithFather(name);
 
       for (final row in rows) {
+        final score = evidenceScore(
+          expectedGrandfather: fatherName,
+          candidateGrandfather: _value(row, 'الجد'),
+          expectedFamily: family,
+          candidateFamily: _value(row, 'العائلة'),
+        );
+        if (score < 1) continue;
         addMatch(RelativeType.children, row);
       }
     }
@@ -151,33 +142,74 @@ class RelativeFinder {
     return candidates.values.toList();
   }
 
-  Future<Map<String, Object?>?> _findUniquePerson({
-    required String name,
-    String father = '',
-    String family = '',
-  }) async {
-    if (name.trim().isEmpty) return null;
-
-    final conditions = <String>['"الاسم" = ?'];
-    final arguments = <Object?>[name];
-
-    if (father.trim().isNotEmpty) {
-      conditions.add('"الاب" = ?');
-      arguments.add(father);
-    }
-    if (family.trim().isNotEmpty) {
-      conditions.add('"العائلة" = ?');
-      arguments.add(family);
-    }
-
-    if (conditions.length < 2) return null;
+  Future<List<Map<String, Object?>>> _peopleWithFather(String father) async {
+    final value = father.trim();
+    if (value.isEmpty) return const [];
 
     final rows = await db.rawQuery(
-      'SELECT * FROM "Sgaza" WHERE ${conditions.join(' AND ')}',
-      arguments,
+      'SELECT * FROM "Sgaza" WHERE "الاب" LIKE ?',
+      ['%$value%'],
     );
 
-    return rows.length == 1 ? rows.first : null;
+    final normalizedFather = ArabicNormalizer.normalize(value);
+    return rows
+        .where(
+          (row) =>
+              _value(row, 'الاب') == normalizedFather &&
+              _value(row, 'الهوية').isNotEmpty,
+        )
+        .toList();
+  }
+
+  Future<Map<String, Object?>?> _findBestPerson({
+    required String name,
+    required String expectedGrandfather,
+    required String expectedFamily,
+  }) async {
+    final value = name.trim();
+    if (value.isEmpty) return null;
+
+    final rows = await db.rawQuery(
+      'SELECT * FROM "Sgaza" WHERE "الاسم" LIKE ?',
+      ['%$value%'],
+    );
+
+    final normalizedName = ArabicNormalizer.normalize(value);
+    final matches = rows.where((row) {
+      if (_value(row, 'الاسم') != normalizedName) return false;
+
+      final score = evidenceScore(
+        expectedGrandfather: expectedGrandfather,
+        candidateGrandfather: _value(row, 'الجد'),
+        expectedFamily: expectedFamily,
+        candidateFamily: _value(row, 'العائلة'),
+      );
+      return score >= 1;
+    }).toList();
+
+    if (matches.isEmpty) return null;
+
+    var bestScore = -1;
+    Map<String, Object?>? best;
+    var bestCount = 0;
+
+    for (final row in matches) {
+      final score = evidenceScore(
+        expectedGrandfather: expectedGrandfather,
+        candidateGrandfather: _value(row, 'الجد'),
+        expectedFamily: expectedFamily,
+        candidateFamily: _value(row, 'العائلة'),
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        best = row;
+        bestCount = 1;
+      } else if (score == bestScore) {
+        bestCount++;
+      }
+    }
+
+    return bestCount == 1 ? best : null;
   }
 
   static String _value(Map<String, Object?> row, String key) {

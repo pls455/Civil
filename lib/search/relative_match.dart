@@ -32,3 +32,40 @@ bool hasSupportingEvidence(String anchor, List<String> supporting) {
   if (anchor.trim().isEmpty) return false;
   return supporting.any((value) => value.trim().isNotEmpty);
 }
+
+int evidenceScore({
+  required String expectedGrandfather,
+  required String candidateGrandfather,
+  required String expectedFamily,
+  required String candidateFamily,
+}) {
+  var score = 0;
+
+  final expectedGrandfatherValue =
+      ArabicNormalizer.normalize(expectedGrandfather);
+  final candidateGrandfatherValue =
+      ArabicNormalizer.normalize(candidateGrandfather);
+  if (expectedGrandfatherValue.isNotEmpty) {
+    if (candidateGrandfatherValue.isNotEmpty &&
+        candidateGrandfatherValue != expectedGrandfatherValue) {
+      return -1;
+    }
+    if (candidateGrandfatherValue == expectedGrandfatherValue) {
+      score += 2;
+    }
+  }
+
+  final expectedFamilyValue = ArabicNormalizer.normalize(expectedFamily);
+  final candidateFamilyValue = ArabicNormalizer.normalize(candidateFamily);
+  if (expectedFamilyValue.isNotEmpty) {
+    if (candidateFamilyValue.isNotEmpty &&
+        candidateFamilyValue != expectedFamilyValue) {
+      return -1;
+    }
+    if (candidateFamilyValue == expectedFamilyValue) {
+      score += 1;
+    }
+  }
+
+  return score;
+}

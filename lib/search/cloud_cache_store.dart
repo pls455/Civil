@@ -71,7 +71,7 @@ class CloudCacheStore {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute(
           'CREATE TABLE IF NOT EXISTS "cloud_people" ('
@@ -133,6 +133,10 @@ class CloudCacheStore {
             'ALTER TABLE "cloud_relationships" '
             'ADD COLUMN "detail" TEXT NOT NULL DEFAULT \'\'',
           );
+        }
+        if (oldVersion < 3) {
+          await db.delete('cloud_relationships');
+          await db.delete('cloud_expansions');
         }
       },
     );

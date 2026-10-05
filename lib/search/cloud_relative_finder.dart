@@ -208,16 +208,110 @@ class CloudRelativeFinder {
       return found;
     }
 
+    Future<List<CloudPerson>> searchAllByFather({
+      required String father,
+      required String expectedGrandfather,
+      required String expectedFamily,
+    }) async {
+      if (father.trim().isEmpty) return const [];
+
+      const pageSize = 100;
+      final all = <CloudPerson>[];
+      var offset = 0;
+
+      while (true) {
+        final page = await engine.search(
+          SearchQuery(father: father),
+          limit: pageSize,
+          offset: offset,
+        );
+
+        for (final candidate in page.results) {
+          if (!same(candidate.father, father)) continue;
+          final score = evidenceScore(
+            expectedGrandfather: expectedGrandfather,
+            candidateGrandfather: candidate.grandfather,
+            expectedFamily: expectedFamily,
+            candidateFamily: candidate.family,
+          );
+          if (score >= 1) all.add(candidate);
+        }
+
+        if (!page.hasMore || page.results.isEmpty) break;
+        offset += page.results.length;
+      }
+
+      return all;
+    }
+
+    Future<CloudPerson?> uniqueByLineage({
+      required String name,
+      required String expectedGrandfather,
+      required String expectedFamily,
+    }) async {
+      if (name.trim().isEmpty) return null;
+
+      const pageSize = 100;
+      var offset = 0;
+      final matches = <CloudPerson>[];
+
+      while (true) {
+        final page = await engine.search(
+          SearchQuery(name: name),
+          limit: pageSize,
+          offset: offset,
+        );
+
+        for (final candidate in page.results) {
+          if (!same(candidate.name, name)) continue;
+          final score = evidenceScore(
+            expectedGrandfather: expectedGrandfather,
+            candidateGrandfather: candidate.grandfather,
+            expectedFamily: expectedFamily,
+            candidateFamily: candidate.family,
+          );
+          if (score >= 1) matches.add(candidate);
+        }
+
+        if (!page.hasMore || page.results.isEmpty) break;
+        offset += page.results.length;
+      }
+
+      if (matches.isEmpty) return null;
+
+      var bestScore = -1;
+      CloudPerson? best;
+      var bestCount = 0;
+
+      for (final candidate in matches) {
+        final score = evidenceScore(
+          expectedGrandfather: expectedGrandfather,
+          candidateGrandfather: candidate.grandfather,
+          expectedFamily: expectedFamily,
+          candidateFamily: candidate.family,
+        );
+        if (score > bestScore) {
+          bestScore = score;
+          best = candidate;
+          bestCount = 1;
+        } else if (score == bestScore) {
+          bestCount++;
+        }
+      }
+
+      return bestCount == 1 ? best : null;
+    }
+
     CloudPerson? father;
     if (person.father.isNotEmpty &&
         hasSupportingEvidence(
           person.father,
           [person.grandfather, person.family],
         )) {
-      father = await unique(
+      father = await uniqueByLineage(
         name: person.father,
-        father: person.grandfather,
-        family: person.family,
+        expectedGrandfather: person.grandfather,
+        expectedFamily: person.family,
       );
       if (father != null) add(CloudRelativeType.father, father);
     }
@@ -287,10 +381,10 @@ class CloudRelativeFinder {
           person.father,
           [person.grandfather, person.family],
         )) {
-      final siblings = await searchAllExact(
+      final siblings = await searchAllByFather(
         father: person.father,
-        grandfather: person.grandfather,
-        family: person.family,
+        expectedGrandfather: person.grandfather,
+        expectedFamily: person.family,
       );
 
       for (final sibling in siblings) {
@@ -311,10 +405,10 @@ class CloudRelativeFinder {
           person.name,
           [person.father, person.family],
         )) {
-      final children = await searchAllExact(
+      final children = await searchAllByFather(
         father: person.name,
-        grandfather: person.father,
-        family: person.family,
+        expectedGrandfather: person.father,
+        expectedFamily: person.family,
       );
 
       for (final child in children) {
@@ -323,10 +417,10 @@ class CloudRelativeFinder {
     }
 
     if (father != null && father.grandfather.isNotEmpty) {
-      final paternalGrandfather = await unique(
+      final paternalGrandfather = await uniqueByLineage(
         name: father.grandfather,
-        father: father.father,
-        family: father.family,
+        expectedGrandfather: father.father,
+        expectedFamily: father.family,
       );
       if (paternalGrandfather != null) {
         add(CloudRelativeType.grandparents, paternalGrandfather);
@@ -337,9 +431,10 @@ class CloudRelativeFinder {
             father.mother,
             [father.motherFamily, father.family],
           )) {
-        final paternalGrandmother = await unique(
+        final paternalGrandmother = await uniqueByLineage(
           name: father.mother,
-          family: father.motherFamily.isNotEmpty
+          expectedGrandfather: '',
+          expectedFamily: father.motherFamily.isNotEmpty
               ? father.motherFamily
               : father.family,
         );
@@ -355,10 +450,10 @@ class CloudRelativeFinder {
             mother.grandfather,
             [mother.father, mother.family],
           )) {
-        final maternalGrandfather = await unique(
+        final maternalGrandfather = await uniqueByLineage(
           name: mother.grandfather,
-          father: mother.father,
-          family: mother.family,
+          expectedGrandfather: mother.father,
+          expectedFamily: mother.family,
         );
         if (maternalGrandfather != null) {
           add(CloudRelativeType.grandparents, maternalGrandfather);
@@ -370,9 +465,10 @@ class CloudRelativeFinder {
             mother.mother,
             [mother.motherFamily, mother.family],
           )) {
-        final maternalGrandmother = await unique(
+        final maternalGrandmother = await uniqueByLineage(
           name: mother.mother,
-          family: mother.motherFamily.isNotEmpty
+          expectedGrandfather: '',
+          expectedFamily: mother.motherFamily.isNotEmpty
               ? mother.motherFamily
               : mother.family,
         );
