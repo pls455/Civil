@@ -29,8 +29,8 @@ class _FakeCloudSearchEngine extends CloudSearchEngine {
           contains(person.birth, query.birthDate);
     }).toList();
 
-    final start = offset.clamp(0, filtered.length);
-    final end = (start + limit).clamp(start, filtered.length);
+    final start = offset.clamp(0, filtered.length).toInt();
+    final end = (start + limit).clamp(start, filtered.length).toInt();
     final page = filtered.sublist(start, end);
 
     return CloudSearchResult(
