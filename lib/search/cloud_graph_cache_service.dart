@@ -58,6 +58,7 @@ class CloudGraphCacheService {
           relativeId: candidate.person.id,
           relationType: candidate.type.name,
           depth: entry.depth + 1,
+          detail: candidate.detail,
         );
 
         if (!visited.contains(candidate.person.id.trim())) {

@@ -23,10 +23,12 @@ class CloudCacheStats {
 
 class CloudCachedRelationship {
   final String relationType;
+  final String detail;
   final CloudPerson person;
 
   const CloudCachedRelationship({
     required this.relationType,
+    this.detail = '',
     required this.person,
   });
 }
@@ -69,7 +71,7 @@ class CloudCacheStore {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute(
           'CREATE TABLE IF NOT EXISTS "cloud_people" ('
@@ -107,6 +109,7 @@ class CloudCacheStore {
           '"person_id" TEXT NOT NULL,'
           '"relative_id" TEXT NOT NULL,'
           '"relation_type" TEXT NOT NULL,'
+          '"detail" TEXT NOT NULL DEFAULT "",'
           '"depth" INTEGER NOT NULL,'
           '"discovered_at" INTEGER NOT NULL,'
           'PRIMARY KEY ("person_id", "relative_id", "relation_type")'
@@ -124,6 +127,14 @@ class CloudCacheStore {
           ')',
         );
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            'ALTER TABLE "cloud_relationships" '
+            'ADD COLUMN "detail" TEXT NOT NULL DEFAULT ""',
+          );
+        }
+      },
     );
   }
 
@@ -136,6 +147,12 @@ class CloudCacheStore {
     final db = await open();
     final now = DateTime.now().millisecondsSinceEpoch;
 
+    String keepValue(String incoming, Object? existing) {
+      final next = incoming.trim();
+      final previous = existing?.toString().trim() ?? '';
+      return next.isNotEmpty ? next : previous;
+    }
+
     await db.transaction((txn) async {
       for (final person in people) {
         final id = person.id.trim();
@@ -143,32 +160,36 @@ class CloudCacheStore {
 
         final existing = await txn.query(
           'cloud_people',
-          columns: ['first_seen'],
           where: 'id = ?',
           whereArgs: [id],
           limit: 1,
         );
 
+        final previous = existing.isEmpty ? <String, Object?>{} : existing.first;
         final firstSeen = existing.isEmpty
             ? now
-            : (existing.first['first_seen'] as int? ?? now);
+            : (previous['first_seen'] as int? ?? now);
 
         await txn.insert(
           'cloud_people',
           {
             'id': id,
-            'full_name': person.fullName,
-            'name': person.name,
-            'father': person.father,
-            'grandfather': person.grandfather,
-            'family': person.family,
-            'gender': person.gender,
-            'birth': person.birth,
-            'old_family': person.oldFamily,
-            'mother': person.mother,
-            'mother_family': person.motherFamily,
-            'english_name': person.englishName,
-            'street': person.street,
+            'full_name': keepValue(person.fullName, previous['full_name']),
+            'name': keepValue(person.name, previous['name']),
+            'father': keepValue(person.father, previous['father']),
+            'grandfather':
+                keepValue(person.grandfather, previous['grandfather']),
+            'family': keepValue(person.family, previous['family']),
+            'gender': keepValue(person.gender, previous['gender']),
+            'birth': keepValue(person.birth, previous['birth']),
+            'old_family':
+                keepValue(person.oldFamily, previous['old_family']),
+            'mother': keepValue(person.mother, previous['mother']),
+            'mother_family':
+                keepValue(person.motherFamily, previous['mother_family']),
+            'english_name':
+                keepValue(person.englishName, previous['english_name']),
+            'street': keepValue(person.street, previous['street']),
             'first_seen': firstSeen,
             'last_updated': now,
           },
@@ -252,6 +273,7 @@ class CloudCacheStore {
         .map(
           (row) => CloudCachedRelationship(
             relationType: row['relation_type']?.toString() ?? '',
+            detail: row['detail']?.toString() ?? '',
             person: _personFromRow(row),
           ),
         )
@@ -263,6 +285,7 @@ class CloudCacheStore {
     required String relativeId,
     required String relationType,
     required int depth,
+    String detail = '',
   }) async {
     final first = personId.trim();
     final second = relativeId.trim();
@@ -278,6 +301,7 @@ class CloudCacheStore {
         'person_id': first,
         'relative_id': second,
         'relation_type': type,
+        'detail': detail.trim(),
         'depth': depth,
         'discovered_at': DateTime.now().millisecondsSinceEpoch,
       },

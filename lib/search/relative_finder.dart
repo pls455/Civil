@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../core/utils/arabic_normalizer.dart';
+import 'relative_match.dart';
 
 enum RelativeType {
   father,
@@ -12,10 +13,12 @@ enum RelativeType {
 class RelativeCandidate {
   final RelativeType type;
   final Map<String, Object?> person;
+  final String detail;
 
   const RelativeCandidate({
     required this.type,
     required this.person,
+    this.detail = '',
   });
 }
 
@@ -38,37 +41,42 @@ class RelativeFinder {
 
     final candidates = <String, RelativeCandidate>{};
 
-    void addMatch(RelativeType type, Map<String, Object?> row) {
+    void addMatch(
+      RelativeType type,
+      Map<String, Object?> row, {
+      String detail = '',
+    }) {
       final rowIdentity = _value(row, 'الهوية');
       if (rowIdentity.isEmpty || rowIdentity == identity) return;
-      candidates['$type:$rowIdentity'] =
-          RelativeCandidate(type: type, person: row);
+      candidates[type.name + ':' + rowIdentity] = RelativeCandidate(
+        type: type,
+        person: row,
+        detail: detail,
+      );
     }
 
     Map<String, Object?>? father;
     if (fatherName.isNotEmpty &&
-        grandfatherName.isNotEmpty &&
-        family.isNotEmpty) {
+        hasSupportingEvidence(fatherName, [grandfatherName, family])) {
       father = await _findUniquePerson(
         name: fatherName,
         father: grandfatherName,
         family: family,
       );
-      if (father != null) {
-        addMatch(RelativeType.father, father);
-      }
+      if (father != null) addMatch(RelativeType.father, father);
     }
 
-    Map<String, Object?>? grandfather;
     if (father != null) {
       final fatherFather = _value(father, 'الاب');
       final fatherGrandfather = _value(father, 'الجد');
       final fatherFamily = _value(father, 'العائلة');
 
       if (fatherGrandfather.isNotEmpty &&
-          fatherFather.isNotEmpty &&
-          fatherFamily.isNotEmpty) {
-        grandfather = await _findUniquePerson(
+          hasSupportingEvidence(
+            fatherGrandfather,
+            [fatherFather, fatherFamily],
+          )) {
+        final grandfather = await _findUniquePerson(
           name: fatherGrandfather,
           father: fatherFather,
           family: fatherFamily,
@@ -79,53 +87,52 @@ class RelativeFinder {
       }
     }
 
-    if (fatherName.isNotEmpty &&
-        grandfatherName.isNotEmpty &&
-        family.isNotEmpty &&
-        motherName.isNotEmpty) {
+    if (hasSupportingEvidence(fatherName, [grandfatherName, family])) {
       final rows = await db.rawQuery(
         'SELECT * FROM "Sgaza" '
         'WHERE "الهوية" != ? '
         'AND "الاب" = ? '
-        'AND "الجد" = ? '
-        'AND "العائلة" = ? '
-        'AND "اسم الام" = ?',
+        'AND (? = "" OR "الجد" = ?) '
+        'AND (? = "" OR "العائلة" = ?)',
         [
           identity,
           fatherName,
           grandfatherName,
+          grandfatherName,
           family,
-          motherName,
+          family,
         ],
       );
 
       for (final row in rows) {
-        addMatch(RelativeType.siblings, row);
+        final siblingKind = classifySiblingRelation(
+          personMother: motherName,
+          candidateMother: _value(row, 'اسم الام'),
+        );
+        addMatch(
+          RelativeType.siblings,
+          row,
+          detail: siblingRelationLabel(siblingKind),
+        );
       }
     }
 
-    final currentPerson = name.isNotEmpty &&
-            fatherName.isNotEmpty &&
-            grandfatherName.isNotEmpty &&
-            family.isNotEmpty
-        ? await _findUniquePerson(
-            name: name,
-            father: fatherName,
-            family: family,
-            grandfather: grandfatherName,
-          )
-        : null;
-
-    if (currentPerson != null &&
-        _value(currentPerson, 'الهوية') == identity) {
+    if (name.isNotEmpty &&
+        hasSupportingEvidence(name, [fatherName, family])) {
       final rows = await db.rawQuery(
         'SELECT * FROM "Sgaza" '
         'WHERE "الهوية" != ? '
         'AND "الاب" = ? '
-        'AND "الجد" = ? '
-        'AND "العائلة" = ? '
-        'AND "اسم الام" = ?',
-        [identity, name, fatherName, family, motherName],
+        'AND (? = "" OR "الجد" = ?) '
+        'AND (? = "" OR "العائلة" = ?)',
+        [
+          identity,
+          name,
+          fatherName,
+          fatherName,
+          family,
+          family,
+        ],
       );
 
       for (final row in rows) {
@@ -138,26 +145,27 @@ class RelativeFinder {
 
   Future<Map<String, Object?>?> _findUniquePerson({
     required String name,
-    required String father,
-    required String family,
-    String grandfather = '',
+    String father = '',
+    String family = '',
   }) async {
-    if (name.isEmpty || family.isEmpty) return null;
+    if (name.trim().isEmpty) return null;
 
-    final conditions = <String>[
-      '"الاسم" = ?',
-      '"العائلة" = ?',
-      '"الاب" = ?',
-    ];
-    final arguments = <Object?>[name, family, father];
+    final conditions = <String>['"الاسم" = ?'];
+    final arguments = <Object?>[name];
 
-    if (grandfather.isNotEmpty) {
-      conditions.add('"الجد" = ?');
-      arguments.add(grandfather);
+    if (father.trim().isNotEmpty) {
+      conditions.add('"الاب" = ?');
+      arguments.add(father);
+    }
+    if (family.trim().isNotEmpty) {
+      conditions.add('"العائلة" = ?');
+      arguments.add(family);
     }
 
+    if (conditions.length < 2) return null;
+
     final rows = await db.rawQuery(
-      'SELECT * FROM "Sgaza" WHERE ${conditions.join(' AND ')}',
+      'SELECT * FROM "Sgaza" WHERE ' + conditions.join(' AND '),
       arguments,
     );
 

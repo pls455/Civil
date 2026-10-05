@@ -620,28 +620,32 @@ class _SearchPageState extends State<SearchPage> {
       return;
     }
 
-    final query = switch (relation) {
-      AiRelationType.father => SearchQuery(
+    SearchQuery query;
+    switch (relation) {
+      case AiRelationType.father:
+        query = SearchQuery(
           father: target.name,
           grandfather: target.father,
           family: target.family,
-        ),
-      AiRelationType.mother => SearchQuery(
+        );
+      case AiRelationType.mother:
+        query = SearchQuery(
           mother: target.name,
-        ),
-      AiRelationType.children => SearchQuery(
-          father: target.name,
-          grandfather: target.father,
           family: target.family,
-          mother: target.mother,
-        ),
-      AiRelationType.grandparents => SearchQuery(
-          grandfather: target.name,
-        ),
-      AiRelationType.siblings => target.toString().isEmpty
-          ? const SearchQuery()
-          : const SearchQuery(),
-    };
+        );
+      case AiRelationType.children:
+        throw const FormatException(
+          'هذا الاتجاه من البحث يحتاج تحديد الشخص الأساسي أولاً.',
+        );
+      case AiRelationType.grandparents:
+        throw const FormatException(
+          'هذا الاتجاه من البحث يحتاج تحديد الشخص الأساسي أولاً.',
+        );
+      case AiRelationType.siblings:
+        throw const FormatException(
+          'تمت معالجة الإخوة من خلال سجل الشخص نفسه.',
+        );
+    }
 
     if (query.isEmpty) {
       throw const FormatException('بيانات القريب لا تكفي لهذا البحث.');

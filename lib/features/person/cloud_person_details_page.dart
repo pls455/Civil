@@ -96,6 +96,7 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
         CloudRelativeCandidate(
           type: type,
           person: item.person,
+          detail: item.detail,
         ),
       );
     }
@@ -281,10 +282,16 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
                     : relative.person.displayName,
               ),
               subtitle: Text(
-                relative.person.id.isEmpty
-                    ? 'لا توجد هوية معروضة'
-                    : 'الهوية: ${relative.person.id}',
+                relative.detail.trim().isEmpty
+                    ? (relative.person.id.isEmpty
+                        ? 'لا توجد هوية معروضة'
+                        : 'الهوية: ' + relative.person.id)
+                    : (relative.person.id.isEmpty
+                        ? relative.detail
+                        : relative.detail +
+                            '\nالهوية: ' + relative.person.id),
               ),
+              isThreeLine: relative.detail.trim().isNotEmpty,
               trailing: const Icon(Icons.chevron_left),
               onTap: () => Navigator.push(
                 context,
