@@ -302,8 +302,7 @@ class _PersonDetailsPageState extends State<PersonDetailsPage> {
                 subtitle: Text(
                   relative.detail.trim().isEmpty
                       ? 'الهوية: ' + _value(relative.person, 'الهوية')
-                      : relative.detail + '\nالهوية: ' +
-                          _value(relative.person, 'الهوية'),
+                      : relative.detail + '\nالهوية: ${_value(relative.person, 'الهوية')}',
                 ),
                 isThreeLine: relative.detail.trim().isNotEmpty,
                 trailing: const Icon(Icons.chevron_left),

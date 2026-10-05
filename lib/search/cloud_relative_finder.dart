@@ -39,7 +39,7 @@ class CloudRelativeFinder {
       String detail = '',
     }) {
       if (relative.id.isEmpty || relative.id == person.id) return;
-      candidates[type.name + ':' + relative.id] = CloudRelativeCandidate(
+      candidates['${type.name}:$relative.id'] = CloudRelativeCandidate(
         type: type,
         person: relative,
         detail: detail,

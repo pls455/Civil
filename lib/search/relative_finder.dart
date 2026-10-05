@@ -48,7 +48,7 @@ class RelativeFinder {
     }) {
       final rowIdentity = _value(row, 'الهوية');
       if (rowIdentity.isEmpty || rowIdentity == identity) return;
-      candidates[type.name + ':' + rowIdentity] = RelativeCandidate(
+      candidates['${type.name}:$rowIdentity'] = RelativeCandidate(
         type: type,
         person: row,
         detail: detail,
@@ -104,7 +104,7 @@ class RelativeFinder {
       }
 
       final rows = await db.rawQuery(
-        'SELECT * FROM "Sgaza" WHERE ' + conditions.join(' AND '),
+        'SELECT * FROM "Sgaza" WHERE ${conditions.join(' AND ')}',
         arguments,
       );
 
