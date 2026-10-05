@@ -1,3 +1,4 @@
+import '../core/utils/arabic_normalizer.dart';
 import 'cloud_search_engine.dart';
 import 'relative_match.dart';
 import 'search_engine.dart';
@@ -46,7 +47,10 @@ class CloudRelativeFinder {
     }
 
     bool same(String actual, String expected) {
-      return expected.trim().isNotEmpty && actual.trim() == expected.trim();
+      final normalizedActual = ArabicNormalizer.normalize(actual);
+      final normalizedExpected = ArabicNormalizer.normalize(expected);
+      return normalizedExpected.isNotEmpty &&
+          normalizedActual == normalizedExpected;
     }
 
     bool matches(
@@ -160,16 +164,48 @@ class CloudRelativeFinder {
       String mother = '',
       String birthDate = '',
     }) async {
-      final matches = await searchExact(
-        name: name,
-        father: father,
-        grandfather: grandfather,
-        family: family,
-        mother: mother,
-        birthDate: birthDate,
-        limit: 2,
-      );
-      return matches.length == 1 ? matches.first : null;
+      const pageSize = 100;
+      var offset = 0;
+      CloudPerson? found;
+
+      while (true) {
+        final page = await engine.search(
+          SearchQuery(
+            name: name,
+            father: father,
+            grandfather: grandfather,
+            family: family,
+            mother: mother,
+            birthDate: birthDate,
+          ),
+          limit: pageSize,
+          offset: offset,
+        );
+
+        final exact = page.results
+            .where(
+              (candidate) => matches(
+                candidate,
+                name: name,
+                father: father,
+                grandfather: grandfather,
+                family: family,
+                mother: mother,
+                birthDate: birthDate,
+              ),
+            )
+            .toList();
+
+        if (exact.length > 1) return null;
+        if (exact.length == 1) {
+          found ??= exact.first;
+        }
+
+        if (!page.hasMore || page.results.isEmpty) break;
+        offset += page.results.length;
+      }
+
+      return found;
     }
 
     CloudPerson? father;
