@@ -631,7 +631,6 @@ class _SearchPageState extends State<SearchPage> {
       case AiRelationType.mother:
         query = SearchQuery(
           mother: target.name,
-          family: target.family,
         );
       case AiRelationType.children:
         throw const FormatException(
