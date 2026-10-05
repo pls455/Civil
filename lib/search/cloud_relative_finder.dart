@@ -156,58 +156,6 @@ class CloudRelativeFinder {
       return all;
     }
 
-    Future<CloudPerson?> unique({
-      String name = '',
-      String father = '',
-      String grandfather = '',
-      String family = '',
-      String mother = '',
-      String birthDate = '',
-    }) async {
-      const pageSize = 100;
-      var offset = 0;
-      CloudPerson? found;
-
-      while (true) {
-        final page = await engine.search(
-          SearchQuery(
-            name: name,
-            father: father,
-            grandfather: grandfather,
-            family: family,
-            mother: mother,
-            birthDate: birthDate,
-          ),
-          limit: pageSize,
-          offset: offset,
-        );
-
-        final exact = page.results
-            .where(
-              (candidate) => matches(
-                candidate,
-                name: name,
-                father: father,
-                grandfather: grandfather,
-                family: family,
-                mother: mother,
-                birthDate: birthDate,
-              ),
-            )
-            .toList();
-
-        if (exact.length > 1) return null;
-        if (exact.length == 1) {
-          found ??= exact.first;
-        }
-
-        if (!page.hasMore || page.results.isEmpty) break;
-        offset += page.results.length;
-      }
-
-      return found;
-    }
-
     Future<List<CloudPerson>> searchAllByFather({
       required String father,
       required String expectedGrandfather,
