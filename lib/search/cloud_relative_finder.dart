@@ -176,9 +176,9 @@ class CloudRelativeFinder {
 
         for (final candidate in page.results) {
           if (!same(candidate.father, father)) continue;
-          final score = evidenceScore(
-            expectedGrandfather: expectedGrandfather,
-            candidateGrandfather: candidate.grandfather,
+          final score = lineageEvidenceScore(
+            expectedParent: expectedGrandfather,
+            candidateParent: candidate.father,
             expectedFamily: expectedFamily,
             candidateFamily: candidate.family,
           );
@@ -212,9 +212,9 @@ class CloudRelativeFinder {
 
         for (final candidate in page.results) {
           if (!same(candidate.name, name)) continue;
-          final score = evidenceScore(
-            expectedGrandfather: expectedGrandfather,
-            candidateGrandfather: candidate.grandfather,
+          final score = lineageEvidenceScore(
+            expectedParent: expectedGrandfather,
+            candidateParent: candidate.father,
             expectedFamily: expectedFamily,
             candidateFamily: candidate.family,
           );
@@ -232,9 +232,9 @@ class CloudRelativeFinder {
       var bestCount = 0;
 
       for (final candidate in matches) {
-        final score = evidenceScore(
-          expectedGrandfather: expectedGrandfather,
-          candidateGrandfather: candidate.grandfather,
+        final score = lineageEvidenceScore(
+          expectedParent: expectedGrandfather,
+          candidateParent: candidate.father,
           expectedFamily: expectedFamily,
           candidateFamily: candidate.family,
         );

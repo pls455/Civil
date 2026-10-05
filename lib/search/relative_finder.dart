@@ -178,9 +178,9 @@ class RelativeFinder {
     final matches = rows.where((row) {
       if (_value(row, 'الاسم') != normalizedName) return false;
 
-      final score = evidenceScore(
-        expectedGrandfather: expectedGrandfather,
-        candidateGrandfather: _value(row, 'الجد'),
+      final score = lineageEvidenceScore(
+        expectedParent: expectedGrandfather,
+        candidateParent: _value(row, 'الاب'),
         expectedFamily: expectedFamily,
         candidateFamily: _value(row, 'العائلة'),
       );
@@ -194,9 +194,9 @@ class RelativeFinder {
     var bestCount = 0;
 
     for (final row in matches) {
-      final score = evidenceScore(
-        expectedGrandfather: expectedGrandfather,
-        candidateGrandfather: _value(row, 'الجد'),
+      final score = lineageEvidenceScore(
+        expectedParent: expectedGrandfather,
+        candidateParent: _value(row, 'الاب'),
         expectedFamily: expectedFamily,
         candidateFamily: _value(row, 'العائلة'),
       );

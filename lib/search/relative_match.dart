@@ -33,6 +33,42 @@ bool hasSupportingEvidence(String anchor, List<String> supporting) {
   return supporting.any((value) => value.trim().isNotEmpty);
 }
 
+
+int lineageEvidenceScore({
+  required String expectedParent,
+  required String candidateParent,
+  required String expectedFamily,
+  required String candidateFamily,
+}) {
+  var score = 0;
+
+  final expectedParentValue = ArabicNormalizer.normalize(expectedParent);
+  final candidateParentValue = ArabicNormalizer.normalize(candidateParent);
+  if (expectedParentValue.isNotEmpty) {
+    if (candidateParentValue.isNotEmpty &&
+        candidateParentValue != expectedParentValue) {
+      return -1;
+    }
+    if (candidateParentValue == expectedParentValue) {
+      score += 2;
+    }
+  }
+
+  final expectedFamilyValue = ArabicNormalizer.normalize(expectedFamily);
+  final candidateFamilyValue = ArabicNormalizer.normalize(candidateFamily);
+  if (expectedFamilyValue.isNotEmpty) {
+    if (candidateFamilyValue.isNotEmpty &&
+        candidateFamilyValue != expectedFamilyValue) {
+      return -1;
+    }
+    if (candidateFamilyValue == expectedFamilyValue) {
+      score += 1;
+    }
+  }
+
+  return score;
+}
+
 int evidenceScore({
   required String expectedGrandfather,
   required String candidateGrandfather,
