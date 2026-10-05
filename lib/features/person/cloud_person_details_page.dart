@@ -285,10 +285,10 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
                 relative.detail.trim().isEmpty
                     ? (relative.person.id.isEmpty
                         ? 'لا توجد هوية معروضة'
-                        : 'الهوية: ' + relative.person.id)
+                        : 'الهوية: ${relative.person.id}')
                     : (relative.person.id.isEmpty
                         ? relative.detail
-                        : relative.detail + '\nالهوية: ${relative.person.id}'),
+                        : '${relative.detail}\nالهوية: ${relative.person.id}'),
               ),
               isThreeLine: relative.detail.trim().isNotEmpty,
               trailing: const Icon(Icons.chevron_left),
