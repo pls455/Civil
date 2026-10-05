@@ -109,7 +109,7 @@ class CloudCacheStore {
           '"person_id" TEXT NOT NULL,'
           '"relative_id" TEXT NOT NULL,'
           '"relation_type" TEXT NOT NULL,'
-          '"detail" TEXT NOT NULL DEFAULT "",'
+          '"detail" TEXT NOT NULL DEFAULT '','
           '"depth" INTEGER NOT NULL,'
           '"discovered_at" INTEGER NOT NULL,'
           'PRIMARY KEY ("person_id", "relative_id", "relation_type")'
@@ -131,7 +131,7 @@ class CloudCacheStore {
         if (oldVersion < 2) {
           await db.execute(
             'ALTER TABLE "cloud_relationships" '
-            'ADD COLUMN "detail" TEXT NOT NULL DEFAULT ""',
+            'ADD COLUMN "detail" TEXT NOT NULL DEFAULT ''',
           );
         }
       },

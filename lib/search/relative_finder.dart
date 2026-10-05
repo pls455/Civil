@@ -88,20 +88,24 @@ class RelativeFinder {
     }
 
     if (hasSupportingEvidence(fatherName, [grandfatherName, family])) {
+      final conditions = <String>[
+        '"الهوية" != ?',
+        '"الاب" = ?',
+      ];
+      final arguments = <Object?>[identity, fatherName];
+
+      if (grandfatherName.isNotEmpty) {
+        conditions.add('"الجد" = ?');
+        arguments.add(grandfatherName);
+      }
+      if (family.isNotEmpty) {
+        conditions.add('"العائلة" = ?');
+        arguments.add(family);
+      }
+
       final rows = await db.rawQuery(
-        'SELECT * FROM "Sgaza" '
-        'WHERE "الهوية" != ? '
-        'AND "الاب" = ? '
-        'AND (? = "" OR "الجد" = ?) '
-        'AND (? = "" OR "العائلة" = ?)',
-        [
-          identity,
-          fatherName,
-          grandfatherName,
-          grandfatherName,
-          family,
-          family,
-        ],
+        'SELECT * FROM "Sgaza" WHERE ' + conditions.join(' AND '),
+        arguments,
       );
 
       for (final row in rows) {
@@ -119,20 +123,24 @@ class RelativeFinder {
 
     if (name.isNotEmpty &&
         hasSupportingEvidence(name, [fatherName, family])) {
+      final conditions = <String>[
+        '"الهوية" != ?',
+        '"الاب" = ?',
+      ];
+      final arguments = <Object?>[identity, name];
+
+      if (fatherName.isNotEmpty) {
+        conditions.add('"الجد" = ?');
+        arguments.add(fatherName);
+      }
+      if (family.isNotEmpty) {
+        conditions.add('"العائلة" = ?');
+        arguments.add(family);
+      }
+
       final rows = await db.rawQuery(
-        'SELECT * FROM "Sgaza" '
-        'WHERE "الهوية" != ? '
-        'AND "الاب" = ? '
-        'AND (? = "" OR "الجد" = ?) '
-        'AND (? = "" OR "العائلة" = ?)',
-        [
-          identity,
-          name,
-          fatherName,
-          fatherName,
-          family,
-          family,
-        ],
+        'SELECT * FROM "Sgaza" WHERE ' + conditions.join(' AND '),
+        arguments,
       );
 
       for (final row in rows) {
