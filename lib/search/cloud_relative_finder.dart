@@ -176,9 +176,9 @@ class CloudRelativeFinder {
 
         for (final candidate in page.results) {
           if (!same(candidate.father, father)) continue;
-          final score = lineageEvidenceScore(
-            expectedParent: expectedGrandfather,
-            candidateParent: candidate.father,
+          final score = evidenceScore(
+            expectedGrandfather: expectedGrandfather,
+            candidateGrandfather: candidate.grandfather,
             expectedFamily: expectedFamily,
             candidateFamily: candidate.family,
           );
@@ -367,7 +367,7 @@ class CloudRelativeFinder {
     if (father != null && father.grandfather.isNotEmpty) {
       final paternalGrandfather = await uniqueByLineage(
         name: father.grandfather,
-        expectedGrandfather: father.father,
+        expectedGrandfather: '',
         expectedFamily: father.family,
       );
       if (paternalGrandfather != null) {
@@ -400,7 +400,7 @@ class CloudRelativeFinder {
           )) {
         final maternalGrandfather = await uniqueByLineage(
           name: mother.grandfather,
-          expectedGrandfather: mother.father,
+          expectedGrandfather: '',
           expectedFamily: mother.family,
         );
         if (maternalGrandfather != null) {

@@ -83,7 +83,7 @@ class RelativeFinder {
           )) {
         final grandfather = await _findBestPerson(
           name: fatherGrandfather,
-          expectedGrandfather: fatherFather,
+          expectedGrandfather: '',
           expectedFamily: fatherFamily,
         );
         if (grandfather != null) {
