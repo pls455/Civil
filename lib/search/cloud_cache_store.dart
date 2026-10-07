@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'cloud_search_engine.dart';
@@ -49,6 +50,7 @@ class CloudCacheSearchResult {
 
 class CloudCacheStore {
   static const _databaseName = 'cloud_cache.sqlite';
+  static const _directoryPreferenceKey = 'cloud_cache_directory';
   static Database? _db;
   static Future<Database>? _opening;
 
@@ -66,8 +68,8 @@ class CloudCacheStore {
   }
 
   Future<Database> _openDatabase() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = p.join(directory.path, _databaseName);
+    final path = await databasePath();
+    await Directory(p.dirname(path)).create(recursive: true);
 
     return openDatabase(
       path,
@@ -363,8 +365,7 @@ class CloudCacheStore {
   }
 
   Future<CloudCacheStats> stats() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File(p.join(directory.path, _databaseName));
+    final file = File(await databasePath());
     if (!await file.exists()) {
       return const CloudCacheStats(
         exists: false,
@@ -393,8 +394,37 @@ class CloudCacheStore {
   }
 
   Future<String> databasePath() async {
+    final preferences = await SharedPreferences.getInstance();
+    final configured = preferences.getString(_directoryPreferenceKey)?.trim();
+
+    if (configured != null && configured.isNotEmpty) {
+      return p.join(configured, _databaseName);
+    }
+
     final directory = await getApplicationDocumentsDirectory();
     return p.join(directory.path, _databaseName);
+  }
+
+  Future<String?> configuredDirectory() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getString(_directoryPreferenceKey)?.trim();
+  }
+
+  Future<void> setDatabaseDirectory(String directoryPath) async {
+    final value = directoryPath.trim();
+    if (value.isEmpty) {
+      throw const ArgumentError('مسار مجلد قاعدة السحابة فارغ.');
+    }
+
+    final directory = Directory(value);
+    if (!await directory.exists()) {
+      throw StateError('مجلد قاعدة السحابة غير موجود.');
+    }
+
+    await close();
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_directoryPreferenceKey, directory.path);
   }
 
   Future<void> clear() async {

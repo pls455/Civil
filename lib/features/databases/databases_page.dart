@@ -20,6 +20,7 @@ class _DatabasesPageState extends State<DatabasesPage> {
   String status = 'لا توجد عملية جارية';
   InstalledDatabaseStats? _installed;
   CloudCacheStats? _cloudCache;
+  String? _cloudDatabasePath;
 
   @override
   void initState() {
@@ -30,12 +31,15 @@ class _DatabasesPageState extends State<DatabasesPage> {
   Future<void> _loadInfo() async {
     try {
       final installed = await DatabaseManager().stats();
-      final cloudCache = await CloudCacheStore().stats();
+      final cloudStore = CloudCacheStore();
+      final cloudCache = await cloudStore.stats();
+      final cloudPath = await cloudStore.databasePath();
 
       if (!mounted) return;
       setState(() {
         _installed = installed;
         _cloudCache = cloudCache;
+        _cloudDatabasePath = cloudPath;
         loadingInfo = false;
       });
     } catch (e) {
@@ -80,6 +84,35 @@ class _DatabasesPageState extends State<DatabasesPage> {
       setState(() => status = 'تم اعتماد قاعدة SQLite بنجاح.');
     } catch (e) {
       if (mounted) setState(() => status = 'فشل استيراد SQLite: $e');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _chooseCloudDirectory() async {
+    final path = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'اختر مجلد حفظ قاعدة السحابة',
+    );
+    if (path == null || path.trim().isEmpty) return;
+
+    setState(() {
+      busy = true;
+      status = 'جارٍ اعتماد مجلد حفظ قاعدة السحابة...';
+    });
+
+    try {
+      await CloudCacheStore().setDatabaseDirectory(path);
+      await _loadInfo();
+      if (!mounted) return;
+      setState(() {
+        status = 'تم اعتماد مجلد حفظ قاعدة السحابة.';
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          status = 'فشل تغيير مكان حفظ قاعدة السحابة: $e';
+        });
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -221,12 +254,35 @@ class _DatabasesPageState extends State<DatabasesPage> {
   Widget _buildCloudCacheCard(BuildContext context) {
     final info = _cloudCache;
     if (info == null || !info.exists) {
-      return const Card(
-        child: ListTile(
-          leading: Icon(Icons.cloud_done_outlined),
-          title: Text('السحابة المحلية'),
-          subtitle: Text(
-            'لم تُنشأ قاعدة سحابية محلية بعد. أول بحث سحابي سينشئها تلقائياً.',
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'السحابة المحلية',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'لم تُنشأ قاعدة سحابية محلية بعد. أول بحث سحابي سينشئ الملف في المسار المحدد أدناه.',
+              ),
+              if (_cloudDatabasePath != null) ...[
+                const SizedBox(height: 10),
+                const Text(
+                  'مسار الملف:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                SelectableText(_cloudDatabasePath!),
+              ],
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: busy ? null : _chooseCloudDirectory,
+                icon: const Icon(Icons.folder_open),
+                label: const Text('اختيار مجلد حفظ السحابة'),
+              ),
+            ],
           ),
         ),
       );
@@ -246,7 +302,21 @@ class _DatabasesPageState extends State<DatabasesPage> {
             Text('الأشخاص المحفوظون: ${info.peopleCount}'),
             Text('العلاقات المحفوظة: ${info.relationshipCount}'),
             Text('حجم القاعدة: ${_size(info.sizeBytes)}'),
+            if (_cloudDatabasePath != null) ...[
+              const SizedBox(height: 10),
+              const Text(
+                'مسار الملف:',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              SelectableText(_cloudDatabasePath!),
+            ],
             const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: busy ? null : _chooseCloudDirectory,
+              icon: const Icon(Icons.folder_open),
+              label: const Text('تغيير مجلد حفظ السحابة'),
+            ),
+            const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: busy ? null : _clearCloudCache,
               icon: const Icon(Icons.delete_outline),

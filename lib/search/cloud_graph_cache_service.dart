@@ -3,7 +3,7 @@ import 'cloud_relative_finder.dart';
 import 'cloud_search_engine.dart';
 
 class CloudGraphCacheService {
-  static const defaultMaxDepth = 4;
+  static const defaultMaxDepth = 1;
 
   final CloudSearchEngine engine;
   final CloudCacheStore cache;

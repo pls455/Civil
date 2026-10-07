@@ -51,7 +51,10 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
       await CloudGraphCacheService(
         engine: _engine,
         cache: _cache,
-      ).discover(widget.person);
+      ).discover(
+        widget.person,
+        maxDepth: 1,
+      );
 
       final refreshed = await _cache.relationshipsForPerson(
         widget.person.id,
