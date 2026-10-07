@@ -315,6 +315,25 @@ class CloudCacheStore {
     );
   }
 
+  Future<void> resetPersonExpansion(String identity) async {
+    final id = identity.trim();
+    if (id.isEmpty) return;
+
+    final db = await open();
+    await db.transaction((txn) async {
+      await txn.delete(
+        'cloud_relationships',
+        where: 'person_id = ?',
+        whereArgs: [id],
+      );
+      await txn.delete(
+        'cloud_expansions',
+        where: 'person_id = ?',
+        whereArgs: [id],
+      );
+    });
+  }
+
   Future<int> expansionDepth(String identity) async {
     final id = identity.trim();
     if (id.isEmpty) return -1;

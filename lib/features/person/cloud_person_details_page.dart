@@ -39,7 +39,16 @@ class _CloudPersonDetailsPageState extends State<CloudPersonDetailsPage> {
 
   Future<void> _loadRelatives() async {
     try {
-      final cached = await _cache.relationshipsForPerson(widget.person.id);
+      var cached = await _cache.relationshipsForPerson(widget.person.id);
+
+      // Legacy cache versions expanded this node beyond the current direct-only graph.
+      // Rebuild only this person's relationships when that stale expansion is detected.
+      final cachedDepth = await _cache.expansionDepth(widget.person.id);
+      if (cachedDepth > 1) {
+        await _cache.resetPersonExpansion(widget.person.id);
+        cached = const [];
+      }
+
       if (cached.isNotEmpty && mounted) {
         setState(() {
           _relatives = _toCandidates(cached);
