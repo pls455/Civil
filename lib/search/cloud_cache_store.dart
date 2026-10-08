@@ -432,7 +432,7 @@ class CloudCacheStore {
   Future<void> setDatabaseDirectory(String directoryPath) async {
     final value = directoryPath.trim();
     if (value.isEmpty) {
-      throw const ArgumentError('مسار مجلد قاعدة السحابة فارغ.');
+      throw ArgumentError('مسار مجلد قاعدة السحابة فارغ.');
     }
 
     final directory = Directory(value);
