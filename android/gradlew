@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+GRADLE_VERSION="8.14.4"
+GRADLE_ROOT="${GRADLE_USER_HOME:-$HOME/.gradle}/civil-gradle/$GRADLE_VERSION"
+GRADLE_HOME="$GRADLE_ROOT/gradle-$GRADLE_VERSION"
+
+if [ ! -x "$GRADLE_HOME/bin/gradle" ]; then
+  mkdir -p "$GRADLE_ROOT"
+  TMP="$GRADLE_ROOT/gradle-$GRADLE_VERSION-bin.zip"
+  curl --fail --location --retry 3 --output "$TMP" "https://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip"
+  rm -rf "$GRADLE_HOME"
+  unzip -q "$TMP" -d "$GRADLE_ROOT"
+  rm -f "$TMP"
+fi
+
+exec "$GRADLE_HOME/bin/gradle" "$@"
