@@ -68,7 +68,32 @@ class CloudCacheStore {
   }
 
   Future<Database> _openDatabase() async {
+    final configured = await configuredDirectory();
     final path = await databasePath();
+
+    try {
+      return await _openDatabaseAt(path);
+    } catch (error) {
+      // Android's directory picker can return a filesystem path without
+      // granting SQLite direct access to it (scoped storage / SAF). Do not
+      // let every cloud search crash because a saved path is no longer usable.
+      if (configured == null || configured.isEmpty) rethrow;
+
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.remove(_directoryPreferenceKey);
+
+      final directory = await getApplicationDocumentsDirectory();
+      final fallbackPath = p.join(directory.path, _databaseName);
+      try {
+        return await _openDatabaseAt(fallbackPath);
+      } catch (_) {
+        // Preserve the original error; it identifies the selected path failure.
+        Error.throwWithStackTrace(error, StackTrace.current);
+      }
+    }
+  }
+
+  Future<Database> _openDatabaseAt(String path) async {
     await Directory(p.dirname(path)).create(recursive: true);
 
     return openDatabase(
