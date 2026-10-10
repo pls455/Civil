@@ -297,7 +297,7 @@ class CloudRelativeFinder {
         person.family.isNotEmpty) {
       final motherMatches = await searchAllExact(
         name: person.mother,
-        family: person.family,
+        family: person.motherFamily,
       );
       final verifiedMothers = <String, CloudPerson>{};
 
@@ -335,7 +335,7 @@ class CloudRelativeFinder {
         final byMotherFamily = verifiedMothers.values
             .where(
               (candidate) =>
-                  candidate.oldFamily.trim() == person.motherFamily.trim(),
+                  same(candidate.family, person.motherFamily),
             )
             .toList();
         if (byMotherFamily.length == 1) {
