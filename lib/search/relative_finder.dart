@@ -106,8 +106,7 @@ class RelativeFinder {
             candidateGrandfather != grandfatherName) {
           continue;
         }
-        if (family.isNotEmpty &&
-            candidateFamily != family) {
+        if (family.isNotEmpty && candidateFamily != family) {
           continue;
         }
         if (grandfatherName.isEmpty && family.isEmpty) {
@@ -140,8 +139,9 @@ class RelativeFinder {
             candidateGrandfather != fatherName) {
           continue;
         }
-        if (family.isNotEmpty &&
-            candidateFamily != family) continue;
+        if (family.isNotEmpty && candidateFamily != family) {
+          continue;
+        }
         if (fatherName.isEmpty && family.isEmpty) {
           continue;
         }
