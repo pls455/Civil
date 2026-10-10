@@ -100,13 +100,17 @@ class RelativeFinder {
       final rows = await _peopleWithFather(fatherName);
 
       for (final row in rows) {
-        final score = evidenceScore(
-          expectedGrandfather: grandfatherName,
-          candidateGrandfather: _value(row, 'الجد'),
-          expectedFamily: family,
-          candidateFamily: _value(row, 'العائلة'),
-        );
-        if (score < 1) continue;
+        final candidateGrandfather = _value(row, 'الجد');
+        final candidateFamily = _value(row, 'العائلة');
+        if (grandfatherName.isNotEmpty &&
+            candidateGrandfather != grandfatherName) {
+          continue;
+        }
+        if (family.isNotEmpty &&
+            candidateFamily != family) continue;
+        if (grandfatherName.isEmpty && family.isEmpty) {
+          continue;
+        }
 
         final siblingKind = classifySiblingRelation(
           personMother: motherName,
@@ -128,13 +132,17 @@ class RelativeFinder {
       final rows = await _peopleWithFather(name);
 
       for (final row in rows) {
-        final score = evidenceScore(
-          expectedGrandfather: fatherName,
-          candidateGrandfather: _value(row, 'الجد'),
-          expectedFamily: family,
-          candidateFamily: _value(row, 'العائلة'),
-        );
-        if (score < 1) continue;
+        final candidateGrandfather = _value(row, 'الجد');
+        final candidateFamily = _value(row, 'العائلة');
+        if (fatherName.isNotEmpty &&
+            candidateGrandfather != fatherName) {
+          continue;
+        }
+        if (family.isNotEmpty &&
+            candidateFamily != family) continue;
+        if (fatherName.isEmpty && family.isEmpty) {
+          continue;
+        }
         addMatch(RelativeType.children, row);
       }
     }
