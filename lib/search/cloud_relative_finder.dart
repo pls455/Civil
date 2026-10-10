@@ -169,20 +169,30 @@ class CloudRelativeFinder {
 
       while (true) {
         final page = await engine.search(
-          SearchQuery(father: father),
+          SearchQuery(
+            father: father,
+            grandfather: expectedGrandfather,
+            family: expectedFamily,
+          ),
           limit: pageSize,
           offset: offset,
         );
 
         for (final candidate in page.results) {
           if (!same(candidate.father, father)) continue;
-          final score = evidenceScore(
-            expectedGrandfather: expectedGrandfather,
-            candidateGrandfather: candidate.grandfather,
-            expectedFamily: expectedFamily,
-            candidateFamily: candidate.family,
-          );
-          if (score >= 1) all.add(candidate);
+
+          // A known lineage field must match exactly. Do not accept a match
+          // based on family name alone when the grandfather is known.
+          if (expectedGrandfather.trim().isNotEmpty &&
+              !same(candidate.grandfather, expectedGrandfather)) {
+            continue;
+          }
+          if (expectedFamily.trim().isNotEmpty &&
+              !same(candidate.family, expectedFamily)) {
+            continue;
+          }
+          if (candidate.id.isEmpty) continue;
+          all.add(candidate);
         }
 
         if (!page.hasMore || page.results.isEmpty) break;
