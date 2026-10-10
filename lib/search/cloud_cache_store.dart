@@ -465,7 +465,39 @@ class CloudCacheStore {
       throw StateError('مجلد قاعدة السحابة غير موجود.');
     }
 
+    final targetPath = p.join(directory.path, _databaseName);
+    final probePath = p.join(directory.path, '.civil_storage_test.sqlite');
+    Database? probe;
+    try {
+      // Verify that SQLite itself can open files in this directory. A folder
+      // picker result alone does not prove Android granted filesystem access.
+      probe = await openDatabase(probePath);
+      await probe.close();
+      probe = null;
+      final probeFile = File(probePath);
+      if (await probeFile.exists()) await probeFile.delete();
+    } catch (error) {
+      await probe?.close();
+      throw StateError(
+        'Android لا يسمح بفتح قاعدة SQLite مباشرة في هذا المجلد. '
+        'اختر مجلدًا يستطيع التطبيق الكتابة فيه. التفاصيل: $error',
+      );
+    }
+
+    final previousPath = await databasePath();
     await close();
+
+    final source = File(previousPath);
+    final target = File(targetPath);
+    if (await source.exists() &&
+        p.normalize(previousPath) != p.normalize(targetPath) &&
+        !await target.exists()) {
+      try {
+        await source.copy(targetPath);
+      } catch (error) {
+        throw StateError('تعذر نقل قاعدة السحابة إلى المجلد الجديد: $error');
+      }
+    }
 
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_directoryPreferenceKey, directory.path);
