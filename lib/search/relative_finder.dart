@@ -107,7 +107,9 @@ class RelativeFinder {
           continue;
         }
         if (family.isNotEmpty &&
-            candidateFamily != family) continue;
+            candidateFamily != family) {
+          continue;
+        }
         if (grandfatherName.isEmpty && family.isEmpty) {
           continue;
         }
