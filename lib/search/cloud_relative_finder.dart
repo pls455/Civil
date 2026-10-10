@@ -215,7 +215,11 @@ class CloudRelativeFinder {
 
       while (true) {
         final page = await engine.search(
-          SearchQuery(name: name),
+          SearchQuery(
+            name: name,
+            father: expectedGrandfather,
+            family: expectedFamily,
+          ),
           limit: pageSize,
           offset: offset,
         );
