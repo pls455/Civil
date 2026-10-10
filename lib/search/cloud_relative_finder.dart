@@ -226,6 +226,14 @@ class CloudRelativeFinder {
 
         for (final candidate in page.results) {
           if (!same(candidate.name, name)) continue;
+          if (expectedGrandfather.trim().isNotEmpty &&
+              !same(candidate.father, expectedGrandfather)) {
+            continue;
+          }
+          if (expectedFamily.trim().isNotEmpty &&
+              !same(candidate.family, expectedFamily)) {
+            continue;
+          }
           final score = lineageEvidenceScore(
             expectedParent: expectedGrandfather,
             candidateParent: candidate.father,
